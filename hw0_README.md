@@ -22,4 +22,8 @@ python3 -m pytest -k "nn_epoch"
 python3 -m pytest -k "softmax_regression_epoch_cpp"
 ```
 ## Section 3.2 full functionality tests
+See [simple_ml.py](./hw_code/hw0/src/simple_ml.py) ```main``` function. In particular, 
+- train_softmax: ~92% test accuracy
+- train_nn: ~98% test accuracy
+- train_softmax: ~9.8 sec (cpp), ~1.19 sec (python)
 
