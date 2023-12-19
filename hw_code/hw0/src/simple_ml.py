@@ -255,18 +255,13 @@ if __name__ == "__main__":
     X_te, y_te = parse_mnist("data/t10k-images-idx3-ubyte.gz",
                              "data/t10k-labels-idx1-ubyte.gz")
 
-    #print("Training softmax regression")
-    #train_softmax(X_tr, y_tr, X_te, y_te, epochs=10, lr = 0.1)
+    print("Training softmax regression")
+    train_softmax(X_tr, y_tr, X_te, y_te, epochs=10, lr = 0.1)
 
-    #print("\nTraining two layer neural network w/ 100 hidden units")
-    #train_nn(X_tr, y_tr, X_te, y_te, hidden_dim=400, epochs=20, lr = 0.2)
+    print("\nTraining two layer neural network w/ 100 hidden units")
+    train_nn(X_tr, y_tr, X_te, y_te, hidden_dim=400, epochs=20, lr = 0.2)
 
-    X, y = parse_mnist("data/train-images-idx3-ubyte.gz",
-                       "data/train-labels-idx1-ubyte.gz")
-    theta = np.zeros((X.shape[1], y.max() + 1), dtype=np.float32)
-    softmax_regression_epoch_cpp(X[:100], y[:100], theta, lr=0.1, batch=10)
-    np.testing.assert_allclose(np.linalg.norm(theta), 1.0947356,
-                               rtol=1e-5, atol=1e-5)
+
     X_tr, y_tr = parse_mnist("data/train-images-idx3-ubyte.gz",
                              "data/train-labels-idx1-ubyte.gz")
     X_te, y_te = parse_mnist("data/t10k-images-idx3-ubyte.gz",
