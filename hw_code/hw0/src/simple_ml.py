@@ -258,7 +258,7 @@ if __name__ == "__main__":
     print("Training softmax regression")
     train_softmax(X_tr, y_tr, X_te, y_te, epochs=10, lr = 0.1)
 
-    print("\nTraining two layer neural network w/ 100 hidden units")
+    print("\nTraining two layer neural network w/ 400 hidden units")
     train_nn(X_tr, y_tr, X_te, y_te, hidden_dim=400, epochs=20, lr = 0.2)
 
 
@@ -270,7 +270,7 @@ if __name__ == "__main__":
 
 
     start_time = time.time()
-    train_softmax(X_tr, y_tr, X_te, y_te, epochs=10, lr=0.2, batch=100, cpp=True)
+    train_softmax(X_tr, y_tr, X_te, y_te, epochs=10, lr=0.2, batch=100, cpp=False)
     print("--- %s seconds ---" % (time.time() - start_time))
     # X = np.arange(6).reshape(2, 3)
     # Y = np.arange(6).reshape(3, 2)
