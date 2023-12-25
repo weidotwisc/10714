@@ -12,7 +12,7 @@ import numpy
 # as the backend for our computations, this line will change in later homeworks
 
 import numpy as array_api
-
+import needle as ndl
 
 class EWiseAdd(TensorOp):
     def compute(self, a: NDArray, b: NDArray):
@@ -143,7 +143,8 @@ class DivScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        return (-1)*(self.scalar)*(node.inputs[0] **(-2)) * (out_grad) # TODO! weiz 2023-12-24
+        result = ndl.Tensor(1/self.scalar) * (out_grad) # weiz 2023-12-25, for bwd pass, result seems have to be ndl tensor type ?, whereas fwd has no such type constraint ?
+        return result
         ### END YOUR SOLUTION
 
 

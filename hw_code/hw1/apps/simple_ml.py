@@ -7,8 +7,37 @@ import numpy as np
 import sys
 
 sys.path.append("python/")
+sys.path.append("tests/hw1/")
 import needle as ndl
 
+# weiz 2023-12-25 copy from tests.hw1.test_autograd_hw.py
+def gradient_check(f, *args, tol=1e-6, backward=False, **kwargs):
+    eps = 1e-4
+    numerical_grads = [np.zeros(a.shape) for a in args]
+    for i in range(len(args)):
+        for j in range(args[i].realize_cached_data().size):
+            args[i].realize_cached_data().flat[j] += eps
+            f1 = float(f(*args, **kwargs).numpy().sum())
+            args[i].realize_cached_data().flat[j] -= 2 * eps
+            f2 = float(f(*args, **kwargs).numpy().sum())
+            args[i].realize_cached_data().flat[j] += eps
+            numerical_grads[i].flat[j] = (f1 - f2) / (2 * eps)
+    if not backward:
+        out = f(*args, **kwargs)
+        computed_grads = [
+            x.numpy()
+            for x in out.op.gradient_as_tuple(ndl.Tensor(np.ones(out.shape)), out)
+        ]
+    else:
+        out = f(*args, **kwargs).sum()
+        out.backward()
+        computed_grads = [a.grad.numpy() for a in args]
+    error = sum(
+        np.linalg.norm(computed_grads[i] - numerical_grads[i]) for i in range(len(args))
+    )
+    print("error and tol: ", error, tol)
+    assert error < tol
+    return computed_grads
 
 def parse_mnist(image_filesname, label_filename):
     """Read an images and labels file in MNIST format.  See this page:
@@ -101,6 +130,10 @@ def loss_err(h, y):
 if __name__ == "__main__":
     print("hw1")
     x= ndl.Tensor([[[1.95]], [[2.7]], [[3.75]]])
-    print(x.numpy())
-    print(np.transpose(x.numpy(), [0,1,2]))
+    #print(x.numpy())
+    #print(np.transpose(x.numpy(), [0,1,2]))
     #ndl.transpose(ndl.Tensor([[[1.95]], [[2.7]], [[3.75]]]), axes=(1, 2)).numpy()
+    #print(ndl.divide_scalar(ndl.Tensor([[1.4, 2.89]]), scalar=7).numpy())
+    gradient_check(
+        ndl.divide_scalar, ndl.Tensor(np.random.randn(5, 4)), scalar=np.random.randn(1)
+    )
