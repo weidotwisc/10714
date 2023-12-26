@@ -238,7 +238,19 @@ class MatMul(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        A = node.inputs[0]
+        B = node.inputs[1]
+        grad_A = matmul(out_grad, transpose(B, [-2,-1]))
+        grad_B = matmul(transpose(A, [-2,-1]), out_grad)
+        if(len(grad_A.shape) > len(A.shape)):
+            diff_len_A = len(grad_A.shape) - len(A.shape)
+            grad_A = summation(grad_A, tuple(range(diff_len_A)))
+        if (len(grad_B.shape) > len(B.shape)):
+            diff_len_B = len(grad_B.shape) - len(B.shape)
+            grad_B = summation(grad_B, tuple(range(diff_len_B)))
+        assert(grad_A.shape == A.shape)
+        assert(grad_B.shape == B.shape)
+        return grad_A, grad_B
         ### END YOUR SOLUTION
 
 
