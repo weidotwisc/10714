@@ -127,6 +127,22 @@ def loss_err(h, y):
     return softmax_loss(h, y_).numpy(), np.mean(h.numpy().argmax(axis=1) != y)
 
 ### added by weiz 2023-12-21 a dummy main function
+def test_matmul_batched_backward():
+    gradient_check(
+        ndl.matmul,
+        ndl.Tensor(np.random.randn(6, 6, 5, 4)),
+        ndl.Tensor(np.random.randn(6, 6, 4, 3)),
+    )
+    gradient_check(
+        ndl.matmul,
+        ndl.Tensor(np.random.randn(6, 6, 5, 4)),
+        ndl.Tensor(np.random.randn(4, 3)),
+    )
+    gradient_check(
+        ndl.matmul,
+        ndl.Tensor(np.random.randn(5, 4)),
+        ndl.Tensor(np.random.randn(6, 6, 4, 3)),
+    )
 if __name__ == "__main__":
     print("hw1")
     x= ndl.Tensor([[[1.95]], [[2.7]], [[3.75]]])
@@ -134,6 +150,12 @@ if __name__ == "__main__":
     #print(np.transpose(x.numpy(), [0,1,2]))
     #ndl.transpose(ndl.Tensor([[[1.95]], [[2.7]], [[3.75]]]), axes=(1, 2)).numpy()
     #print(ndl.divide_scalar(ndl.Tensor([[1.4, 2.89]]), scalar=7).numpy())
+    #gradient_check(
+    #    ndl.divide_scalar, ndl.Tensor(np.random.randn(5, 4)), scalar=np.random.randn(1)
+    #)
+    #test_matmul_batched_backward()
     gradient_check(
-        ndl.divide_scalar, ndl.Tensor(np.random.randn(5, 4)), scalar=np.random.randn(1)
+        ndl.matmul,
+        ndl.Tensor(np.random.randn(6, 6, 5, 4)),
+        ndl.Tensor(np.random.randn(4, 3)),
     )
