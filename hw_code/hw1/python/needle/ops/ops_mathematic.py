@@ -184,7 +184,8 @@ class Reshape(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        orig_shape = node.inputs[0].shape
+        return reshape(out_grad, orig_shape)
         ### END YOUR SOLUTION
 
 
