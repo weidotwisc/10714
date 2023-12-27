@@ -3,6 +3,9 @@
 from numbers import Number
 from typing import Optional, List, Tuple, Union
 
+import PIL.ImageCms
+import numpy as np
+
 from ..autograd import NDArray
 from ..autograd import Op, Tensor, Value, TensorOp
 from ..autograd import TensorTuple, TensorTupleOp
@@ -204,7 +207,13 @@ class BroadcastTo(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        orig_shape = node.inputs[0].shape
+        new_shape = self.shape
+        orig_shape_lst = list(orig_shape)
+        new_shape_lst = list(new_shape)
+        orig_shape_lst = [1]*(len(new_shape_lst)-len(orig_shape_lst))+orig_shape_lst
+        axis_indices = [index for index, (elem1, elem2) in enumerate(zip(new_shape_lst, orig_shape_lst)) if elem1 > elem2]
+        return summation(out_grad, tuple(axis_indices)).reshape(orig_shape)
         ### END YOUR SOLUTION
 
 
@@ -223,7 +232,15 @@ class Summation(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        orig_shape = node.inputs[0].shape
+        l=[]
+        for s in orig_shape:
+            l.append(s)
+        for s in self.axes:
+            l[s] = 1
+        real_shape = tuple(l)
+        out_grad = out_grad.reshape(real_shape)
+        return broadcast_to(out_grad, orig_shape)
         ### END YOUR SOLUTION
 
 
