@@ -209,10 +209,16 @@ class BroadcastTo(TensorOp):
         ### BEGIN YOUR SOLUTION
         orig_shape = node.inputs[0].shape
         new_shape = self.shape
+        # step 1 construct orig shape (bcast from) and new shape (bcast to), expand orig shape to the same dimension as the new shape
         orig_shape_lst = list(orig_shape)
         new_shape_lst = list(new_shape)
         orig_shape_lst = [1]*(len(new_shape_lst)-len(orig_shape_lst))+orig_shape_lst
+        # step 2 find the axes indices where bcast happened
         axis_indices = [index for index, (elem1, elem2) in enumerate(zip(new_shape_lst, orig_shape_lst)) if elem1 > elem2]
+        # step 3 sum over the axes where bcast happend, reshape is needed because summation can endup with 1-dimension numpy array, and we need to make
+        # it explicitly the same shape as the original shape (be it row vector or column vector)
+        # e.g., gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn(3, 1)), shape=(3, 3))
+        #     gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn(1, 3)), shape=(3, 3))
         return summation(out_grad, tuple(axis_indices)).reshape(orig_shape)
         ### END YOUR SOLUTION
 
@@ -233,6 +239,9 @@ class Summation(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         orig_shape = node.inputs[0].shape
+        # step 1 get real shape of out_grad
+        # as out_grad could be a 1-dim as a result of sum
+        # but we want the explicit shape of out_grad
         l=[]
         for s in orig_shape:
             l.append(s)
@@ -240,6 +249,8 @@ class Summation(TensorOp):
             l[s] = 1
         real_shape = tuple(l)
         out_grad = out_grad.reshape(real_shape)
+
+        # step 2 broadcast to the orig_shape
         return broadcast_to(out_grad, orig_shape)
         ### END YOUR SOLUTION
 
