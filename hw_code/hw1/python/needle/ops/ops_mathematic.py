@@ -260,10 +260,10 @@ class MatMul(TensorOp):
         B = node.inputs[1]
         grad_A = matmul(out_grad, transpose(B, [-2,-1]))
         grad_B = matmul(transpose(A, [-2,-1]), out_grad)
-        if(len(grad_A.shape) > len(A.shape)):
+        if(len(grad_A.shape) > len(A.shape)): # e.g., shape(A)=(5,4), shape(B)=(6,6,4,3), need to sum over the first two axes for grad_A (6,6,5,4) to (5,4)
             diff_len_A = len(grad_A.shape) - len(A.shape)
             grad_A = summation(grad_A, tuple(range(diff_len_A)))
-        if (len(grad_B.shape) > len(B.shape)):
+        if (len(grad_B.shape) > len(B.shape)): # e.g., shape(A) = (6,6,5,4) , shape(B) = (4,3), need to sum over the first two axes for grad_B (6,6,4,3) to (4,3)
             diff_len_B = len(grad_B.shape) - len(B.shape)
             grad_B = summation(grad_B, tuple(range(diff_len_B)))
         assert(grad_A.shape == A.shape)
