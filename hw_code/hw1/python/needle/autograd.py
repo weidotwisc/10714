@@ -393,14 +393,25 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    #assert(list(node_list) == 1) # weiz 2023-12-30 assumes it always gives the last node
+    visited = set()
+    topo_order = [] # weiz 2023-12-30, really this is the dfs order
+    for node in node_list:
+        topo_sort_dfs(node, visited, topo_order)
+    return topo_order
     ### END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for n in node.inputs:
+        if(n not in visited):
+            topo_sort_dfs(n, visited, topo_order)
+    visited.add(node)
+    topo_order.append(node)
+
+
     ### END YOUR SOLUTION
 
 
