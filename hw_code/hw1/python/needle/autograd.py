@@ -406,10 +406,11 @@ def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
     for n in node.inputs:
-        if(n not in visited):
+        if(n not in visited): # technically, i don't need this if, as line 411 will guard it, at the cost of extra function calls
             topo_sort_dfs(n, visited, topo_order)
-    visited.add(node)
-    topo_order.append(node)
+    if(node not in visited): # this branch is to avoid adding nodes multiple times, in DAG (richer than tree), there could be multiple paths that lead to the same node
+        visited.add(node)
+        topo_order.append(node)
 
 
     ### END YOUR SOLUTION
