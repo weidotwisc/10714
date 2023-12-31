@@ -127,6 +127,9 @@ class Value:
         global TENSOR_COUNTER
         TENSOR_COUNTER += 1
         if requires_grad is None:
+            for x in inputs:
+                if(type(x) is tuple):
+                    print("weiz!!! ", len(x), len(inputs))
             requires_grad = any(x.requires_grad for x in inputs)
         self.op = op
         self.inputs = inputs
@@ -378,9 +381,21 @@ def compute_gradient_of_variables(output_tensor, out_grad):
 
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
+    for node in reverse_topo_order:
+        if node.requires_grad:
+            node.grad = sum_node_list(node_to_output_grads_list[node])
+            if node.op is None: # if true inputs node, no ops are defined
+                continue
+            partial_adjoints = node.op.gradient_as_tuple(node.grad, node) # weiz 2023-12-30, node, we need to use node.op not input_node.op, this is most IMPORTANT!!!
+            for input_node, input_node_partial_adjoint in zip(node.inputs, partial_adjoints):
+                if (input_node not in node_to_output_grads_list):
+                    node_to_output_grads_list[input_node] = [input_node_partial_adjoint]
+                else:
+                    node_to_output_grads_list[input_node].append(input_node_partial_adjoint)
+
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    #raise NotImplementedError()
     ### END YOUR SOLUTION
 
 
@@ -393,7 +408,7 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    #assert(list(node_list) == 1) # weiz 2023-12-30 assumes it always gives the last node
+    #assert(list(node_list) == 1) # weiz 2023-12-30 there could be multiple root nodes in DAG
     visited = set()
     topo_order = [] # weiz 2023-12-30, really this is the dfs order
     for node in node_list:
