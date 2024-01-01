@@ -126,7 +126,7 @@ class EWiseDiv(TensorOp):
         ### BEGIN YOUR SOLUTION
         a,b = node.inputs[0], node.inputs[1]
         grad_a = (b**(-1)) * out_grad
-        grad_b = (-1) * a * (b**(-2)) * out_grad
+        grad_b = (-a) * (b**(-2)) * out_grad
         return grad_a, grad_b
         ### END YOUR SOLUTION
 
@@ -239,7 +239,8 @@ class Summation(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         if(self.axes is None): # weiz 2023-12-30, when dealing with AD impl, realized self.axes could be None
-            return out_grad
+            orig_shape = node.inputs[0].shape
+            return broadcast_to(out_grad, orig_shape)
         orig_shape = node.inputs[0].shape
         # step 1 get real shape of out_grad
         # as out_grad could be a 1-dim as a result of sum

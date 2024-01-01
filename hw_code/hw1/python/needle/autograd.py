@@ -386,7 +386,7 @@ def compute_gradient_of_variables(output_tensor, out_grad):
             node.grad = sum_node_list(node_to_output_grads_list[node])
             if node.op is None: # if true inputs node, no ops are defined
                 continue
-            partial_adjoints = node.op.gradient_as_tuple(node.grad, node) # weiz 2023-12-30, node, we need to use node.op not input_node.op, this is most IMPORTANT!!!
+            partial_adjoints = node.op.gradient_as_tuple(node.grad, node) # weiz 2023-12-30, note, we need to use node.op not input_node.op, this is most IMPORTANT!!!
             for input_node, input_node_partial_adjoint in zip(node.inputs, partial_adjoints):
                 if (input_node not in node_to_output_grads_list):
                     node_to_output_grads_list[input_node] = [input_node_partial_adjoint]
