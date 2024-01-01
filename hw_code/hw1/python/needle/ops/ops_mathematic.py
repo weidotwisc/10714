@@ -231,6 +231,7 @@ class Summation(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
         self.axes = axes
 
+
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
         return array_api.sum(a, axis=self.axes)
@@ -239,8 +240,10 @@ class Summation(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         if(self.axes is None): # weiz 2023-12-30, when dealing with AD impl, realized self.axes could be None
-            orig_shape = node.inputs[0].shape
+            # self.axes = np.arange(len(node.inputs[0].shape)) # alternatively, one can do this, but i am not sure if this node's inputs share are going to change
+            orig_shape = node.inputs[0].shape # when it is none, the out_grad is a 0-dimenional, just bcast it to the orignal shape
             return broadcast_to(out_grad, orig_shape)
+
         orig_shape = node.inputs[0].shape
         # step 1 get real shape of out_grad
         # as out_grad could be a 1-dim as a result of sum
