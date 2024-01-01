@@ -181,7 +181,25 @@ if __name__ == "__main__":
     #test_summation_backward()
     #gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5, 4,1)), axes=(1,))
     #test_broadcast_to_backward()
+    #gradient_check(
+     #   ndl.broadcast_to, ndl.Tensor(np.random.randn(5, 4, 1)), shape=(5, 4, 3)
+    #)
     gradient_check(
-        ndl.broadcast_to, ndl.Tensor(np.random.randn(5, 4, 1)), shape=(5, 4, 3)
+        lambda A, B, C: ndl.summation((A @ B + C) * (A @ B), axes=None),
+        ndl.Tensor(np.random.randn(10, 9)),
+        ndl.Tensor(np.random.randn(9, 8)),
+        ndl.Tensor(np.random.randn(10, 8)),
+        backward=True,
+    )
+
+    gradient_check(
+        lambda A, B, C: ndl.summation(
+            A @ B  +C, axes=None
+        ),
+        #ndl.Tensor(np.random.randn(100)),
+        ndl.Tensor(np.random.randn(10,10)),
+        ndl.Tensor(np.random.randn(10, 5)),
+        ndl.Tensor(np.random.randn(10, 5)),
+        backward=True,
     )
 
