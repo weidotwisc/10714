@@ -191,15 +191,15 @@ if __name__ == "__main__":
         ndl.Tensor(np.random.randn(10, 8)),
         backward=True,
     )
-
     gradient_check(
         lambda A, B, C: ndl.summation(
-            A @ B  +C, axes=None
+            ndl.reshape(A, shape=(10, 10)) @ B / 5 + C, axes=None
         ),
-        #ndl.Tensor(np.random.randn(100)),
-        ndl.Tensor(np.random.randn(10,10)),
+        ndl.Tensor(np.random.randn(100)),
         ndl.Tensor(np.random.randn(10, 5)),
         ndl.Tensor(np.random.randn(10, 5)),
         backward=True,
     )
+
+
 
