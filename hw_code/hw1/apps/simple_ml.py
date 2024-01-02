@@ -98,8 +98,9 @@ def softmax_loss(Z, y_one_hot):
     ### BEGIN YOUR SOLUTION
 
     Z_exp = ndl.exp(Z)  # element-wise exp()
-    Z_exp_sum_col = (ndl.summation(Z_exp, axes=1)).reshape((-1,1))  # make a column vector, element component is the sum of each row in Z_exp
-    A = Z_exp / Z_exp_sum_col  # bcast and normalize Z_exp to get Activation A
+    Z_exp_sum_col = (ndl.summation(Z_exp, axes=(1,))).reshape((-1,1))  # make a column vector, element component is the sum of each row in Z_exp
+                                                                       # note that, I have to use axes=(1,) not axes=(1), as (1) is not a tuple
+    A = Z_exp / ndl.broadcast_to(Z_exp_sum_col, Z_exp.shape)  # bcast (explicitly in needl) and normalize Z_exp to get Activation A
     log_A = ndl.log(A)  # recall cross entropy was <ground_truth, -log(prediction)>
     total_loss = ndl.summation(log_A * y_one_hot) * (-1)  # element-wise multiply and then sum, same as sum(A@Y.transpose())
     return total_loss / (Z).shape[0]
