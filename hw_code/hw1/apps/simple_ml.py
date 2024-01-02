@@ -88,7 +88,7 @@ def softmax_loss(Z, y_one_hot):
         Z (ndl.Tensor[np.float32]): 2D Tensor of shape
             (batch_size, num_classes), containing the logit predictions for
             each class.
-        y (ndl.Tensor[np.int8]): 2D Tensor of shape (batch_size, num_classes)
+        y_one_hot (ndl.Tensor[np.int8]): 2D Tensor of shape (batch_size, num_classes)
             containing a 1 at the index of the true label of each example and
             zeros elsewhere.
 
@@ -98,7 +98,7 @@ def softmax_loss(Z, y_one_hot):
     ### BEGIN YOUR SOLUTION
 
     Z_exp = ndl.exp(Z)  # element-wise exp()
-    Z_exp_sum_col = (ndl.summation(Z_exp, axes=(1,))).reshape((-1,1))  # make a column vector, element component is the sum of each row in Z_exp
+    Z_exp_sum_col = (ndl.summation(Z_exp, axes=1)).reshape((-1,1))  # make a column vector, element component is the sum of each row in Z_exp
                                                                        # note that, I have to use axes=(1,) not axes=(1), as (1) is not a tuple
     A = Z_exp / ndl.broadcast_to(Z_exp_sum_col, Z_exp.shape)  # bcast (explicitly in needl) and normalize Z_exp to get Activation A
     log_A = ndl.log(A)  # recall cross entropy was <ground_truth, -log(prediction)>
@@ -132,7 +132,30 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
     """
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    start_idx = 0
+    end_idx = start_idx + batch
+    num_classes = W2.shape[1]
+    while start_idx < len(X):
+        # step 1: retrieve data
+        X_batch = ndl.Tensor(X[start_idx:end_idx])
+        y_batch = y[start_idx:end_idx]
+        start_idx = start_idx + batch
+        end_idx = end_idx + batch
+        # step 2: fwd computation:
+        Z1 = ndl.matmul(X_batch, W1)
+        A1 = ndl.relu(Z1)  # relu
+        Z2 = ndl.matmul(A1, W2)
+        Y = np.eye(num_classes)[y_batch]  # create 1-hot-encoding, create an ID matrix of num_classes x num_classes, and use each element in y to index this ID matrix to get the corresponding
+        y_one_hot = ndl.Tensor(Y) # weiz, use numpy to generate really data logic and use ndl to wrap this tensor
+        loss = softmax_loss(Z2, y_one_hot)
+        print("loss: ", loss)
+        # step 3: bwd computation:
+        loss.backward()
+        W1.cached_data = W1.cached_data - lr * W1.grad.realize_cached_data() # in-place update
+        W2.cached_data = W2.cached_data - lr * W2.grad.realize_cached_data()
+        #W1 = W1 - lr * W1.grad # this will add additional compute nodes in the graph
+        #W2 = W2 - lr * W2.grad
+    return W1, W2
     ### END YOUR SOLUTION
 
 
@@ -147,58 +170,22 @@ def loss_err(h, y):
     return softmax_loss(h, y_).numpy(), np.mean(h.numpy().argmax(axis=1) != y)
 
 ### added by weiz 2023-12-21 a dummy main function
-def test_matmul_batched_backward():
-    gradient_check(
-        ndl.matmul,
-        ndl.Tensor(np.random.randn(6, 6, 5, 4)),
-        ndl.Tensor(np.random.randn(6, 6, 4, 3)),
-    )
-    gradient_check(
-        ndl.matmul,
-        ndl.Tensor(np.random.randn(6, 6, 5, 4)),
-        ndl.Tensor(np.random.randn(4, 3)),
-    )
-    gradient_check(
-        ndl.matmul,
-        ndl.Tensor(np.random.randn(5, 4)),
-        ndl.Tensor(np.random.randn(6, 6, 4, 3)),
-    )
-
-def test_summation_backward():
-    gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5, 4)), axes=(1,))
-    gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5, 4)), axes=(0,))
-    gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5, 4)), axes=(0, 1))
-    gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5, 4, 1)), axes=(0, 1))
-
-def test_broadcast_to_backward():
-    gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn(3, 1)), shape=(3, 3))
-    gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn(1, 3)), shape=(3, 3))
-    gradient_check(
-        ndl.broadcast_to,
-        ndl.Tensor(
-            np.random.randn(
-                1,
-            )
-        ),
-        shape=(3, 3, 3),
-    )
-    gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn()), shape=(3, 3, 3))
-    gradient_check(
-        ndl.broadcast_to, ndl.Tensor(np.random.randn(5, 4, 1)), shape=(5, 4, 3)
-    )
-
-if __name__ == "__main__":
-    # test softmax loss backward
+def weiz_nn_mnist():
     X, y = parse_mnist(
         "data/train-images-idx3-ubyte.gz", "data/train-labels-idx1-ubyte.gz"
     )
+    X_te, y_te = parse_mnist("data/t10k-images-idx3-ubyte.gz",
+                             "data/t10k-labels-idx1-ubyte.gz")
     np.random.seed(0)
-    Z = ndl.Tensor(np.zeros((y.shape[0], 10)).astype(np.float32))
-    y_one_hot = np.zeros((y.shape[0], 10))
-    y_one_hot[np.arange(y.size), y] = 1
-    Zsmall = ndl.Tensor(np.random.randn(16, 10).astype(np.float32))
-    ysmall = ndl.Tensor(y_one_hot[:16])
-    gradient_check(softmax_loss, Zsmall, ysmall, tol=0.01, backward=True)
+    W1 = ndl.Tensor(np.random.randn(X.shape[1], 400).astype(np.float32) / np.sqrt(400))
+    W2 = ndl.Tensor(np.random.randn(400, 10).astype(np.float32) / np.sqrt(10))
+    for i in range(20):
+        W1, W2 = nn_epoch(X, y, W1, W2, lr=0.2, batch=100)
+
+    print("training loss err: ", loss_err(ndl.relu(ndl.Tensor(X) @ W1) @ W2, y))
+    print("testing loss err: ", loss_err(ndl.relu(ndl.Tensor(X_te) @ W1) @ W2, y_te))
+if __name__ == "__main__":
+    weiz_nn_mnist()
 
 
 

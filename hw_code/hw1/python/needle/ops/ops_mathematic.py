@@ -146,7 +146,8 @@ class DivScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        result = ndl.Tensor(1/self.scalar) * (out_grad) # weiz 2023-12-25, for bwd pass, result seems have to be ndl tensor type ?, whereas fwd has no such type constraint ?
+        #result = ndl.Tensor(1/self.scalar) * (out_grad) # weiz 2023-12-25, for bwd pass, result seems have to be ndl tensor type ?, whereas fwd has no such type constraint ?
+        result = out_grad * (1/self.scalar)
         return result
         ### END YOUR SOLUTION
 
@@ -230,8 +231,13 @@ def broadcast_to(a, shape):
 class Summation(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
         if(axes is not None):
-            assert(type(axes) is tuple)
-        self.axes = axes
+            if(type(axes) is not tuple):
+                assert(type(axes) is int)
+                self.axes=(axes,) # make it a tuple weiz 2024-01-02
+            else:
+                self.axes = axes
+        else:
+            self.axes = None
 
 
     def compute(self, a):
@@ -348,13 +354,17 @@ def exp(a):
 class ReLU(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return array_api.maximum(0, a)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        input_grad = node.inputs[0].realize_cached_data().copy()
+        input_grad[input_grad<=0] = 0
+        input_grad[input_grad>0] = 1
+        return out_grad * input_grad # weiz 2024-01-02 don't forget to multiply out_grad, otherwise we didn't get the gradients w.r.t loss function!!
         ### END YOUR SOLUTION
+
 
 
 def relu(a):
