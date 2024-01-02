@@ -62,7 +62,20 @@ def parse_mnist(image_filesname, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    with gzip.open(label_filename, 'rb') as lbpath:
+        magic, n = struct.unpack('>ii', lbpath.read(8)) # > means big-endian, i means int, two iis mean we need to read two numbers
+        #print(magic, n)
+        labels = np.frombuffer(lbpath.read(), dtype=np.uint8) # use np.frombuffer, apparently the previous lbapth.read(8) already moves the pointer to the proper data region
+        assert(len(labels) == n)
+        y = labels
+        #print(np.max(labels), np.min(labels)) # labels from 0 to 9
+    with gzip.open(image_filesname, 'rb') as imgpath:
+        magic, n, rows, cols = struct.unpack('>iiii', imgpath.read(16))
+        images = np.frombuffer(imgpath.read(), dtype=np.uint8).reshape(len(labels), 784)
+        assert(len(images) == n)
+        #print(images.shape)
+        X = images.astype(np.float32) / 255
+    return X,y
     ### END YOUR SOLUTION
 
 
@@ -83,7 +96,13 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+
+    Z_exp = ndl.exp(Z)  # element-wise exp()
+    Z_exp_sum_col = (ndl.summation(Z_exp, axes=1)).reshape((-1,1))  # make a column vector, element component is the sum of each row in Z_exp
+    A = Z_exp / Z_exp_sum_col  # bcast and normalize Z_exp to get Activation A
+    log_A = ndl.log(A)  # recall cross entropy was <ground_truth, -log(prediction)>
+    total_loss = ndl.summation(log_A * y_one_hot) * (-1)  # element-wise multiply and then sum, same as sum(A@Y.transpose())
+    return total_loss / (Z).shape[0]
     ### END YOUR SOLUTION
 
 
@@ -168,38 +187,17 @@ def test_broadcast_to_backward():
     )
 
 if __name__ == "__main__":
-    print("hw1")
-    x= ndl.Tensor([[[1.95]], [[2.7]], [[3.75]]])
-    #print(x.numpy())
-    #print(np.transpose(x.numpy(), [0,1,2]))
-    #ndl.transpose(ndl.Tensor([[[1.95]], [[2.7]], [[3.75]]]), axes=(1, 2)).numpy()
-    #print(ndl.divide_scalar(ndl.Tensor([[1.4, 2.89]]), scalar=7).numpy())
-    #gradient_check(
-    #    ndl.divide_scalar, ndl.Tensor(np.random.randn(5, 4)), scalar=np.random.randn(1)
-    #)
-    #test_matmul_batched_backward()
-    #test_summation_backward()
-    #gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5, 4,1)), axes=(1,))
-    #test_broadcast_to_backward()
-    #gradient_check(
-     #   ndl.broadcast_to, ndl.Tensor(np.random.randn(5, 4, 1)), shape=(5, 4, 3)
-    #)
-    gradient_check(
-        lambda A, B, C: ndl.summation((A @ B + C) * (A @ B), axes=None),
-        ndl.Tensor(np.random.randn(10, 9)),
-        ndl.Tensor(np.random.randn(9, 8)),
-        ndl.Tensor(np.random.randn(10, 8)),
-        backward=True,
+    # test softmax loss backward
+    X, y = parse_mnist(
+        "data/train-images-idx3-ubyte.gz", "data/train-labels-idx1-ubyte.gz"
     )
-    gradient_check(
-        lambda A, B, C: ndl.summation(
-            ndl.reshape(A, shape=(10, 10)) @ B / 5 + C, axes=None
-        ),
-        ndl.Tensor(np.random.randn(100)),
-        ndl.Tensor(np.random.randn(10, 5)),
-        ndl.Tensor(np.random.randn(10, 5)),
-        backward=True,
-    )
+    np.random.seed(0)
+    Z = ndl.Tensor(np.zeros((y.shape[0], 10)).astype(np.float32))
+    y_one_hot = np.zeros((y.shape[0], 10))
+    y_one_hot[np.arange(y.size), y] = 1
+    Zsmall = ndl.Tensor(np.random.randn(16, 10).astype(np.float32))
+    ysmall = ndl.Tensor(y_one_hot[:16])
+    gradient_check(softmax_loss, Zsmall, ysmall, tol=0.01, backward=True)
 
 
 
