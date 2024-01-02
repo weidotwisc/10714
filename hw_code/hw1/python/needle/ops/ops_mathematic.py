@@ -229,6 +229,8 @@ def broadcast_to(a, shape):
 
 class Summation(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
+        if(axes is not None):
+            assert(type(axes) is tuple)
         self.axes = axes
 
 

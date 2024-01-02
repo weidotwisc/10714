@@ -127,9 +127,9 @@ class Value:
         global TENSOR_COUNTER
         TENSOR_COUNTER += 1
         if requires_grad is None:
-            for x in inputs:
-                if(type(x) is tuple):
-                    print("weiz!!! ", len(x), len(inputs))
+            #for x in inputs:
+            #    if(type(x) is tuple):
+            #        print("weiz!!! ", len(x), len(inputs))
             requires_grad = any(x.requires_grad for x in inputs)
         self.op = op
         self.inputs = inputs
