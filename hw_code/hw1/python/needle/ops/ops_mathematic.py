@@ -147,7 +147,7 @@ class DivScalar(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         #result = ndl.Tensor(1/self.scalar) * (out_grad) # weiz 2023-12-25, for bwd pass, result seems have to be ndl tensor type ?, whereas fwd has no such type constraint ?
-        result = out_grad * (1/self.scalar)
+        result = out_grad * (1/self.scalar) # weiz 2023-01-02 seems that even I don't have to cast it to ndl.Tensor, maybe because *operator make it result a class of ndl.Tensor
         return result
         ### END YOUR SOLUTION
 
@@ -361,7 +361,7 @@ class ReLU(TensorOp):
         ### BEGIN YOUR SOLUTION
         input_grad = node.inputs[0].realize_cached_data().copy()
         input_grad[input_grad<=0] = 0
-        input_grad[input_grad>0] = 1
+        input_grad[input_grad>0] = 1 # at this point input_grad is NDArray, but the * in the next line make it a ndl.Tensory type ?
         return out_grad * input_grad # weiz 2024-01-02 don't forget to multiply out_grad, otherwise we didn't get the gradients w.r.t loss function!!
         ### END YOUR SOLUTION
 
