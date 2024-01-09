@@ -151,6 +151,8 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
         print("loss: ", loss)
         # step 3: bwd computation:
         loss.backward()
+        #W1.data = W1.data - lr * W1.grad.data  # in-place update, not working , because datatype in data() not matching
+        #W2.data = W2.data - lr * W2.grad.data
         W1.cached_data = W1.cached_data - lr * W1.grad.realize_cached_data() # in-place update
         W2.cached_data = W2.cached_data - lr * W2.grad.realize_cached_data()
         #W1 = W1 - lr * W1.grad # this will add additional compute nodes in the graph
@@ -184,8 +186,73 @@ def weiz_nn_mnist():
 
     print("training loss err: ", loss_err(ndl.relu(ndl.Tensor(X) @ W1) @ W2, y))
     print("testing loss err: ", loss_err(ndl.relu(ndl.Tensor(X_te) @ W1) @ W2, y_te))
+
+# weiz 2024-01-06 explore gradient of gradient
+def weiz_explore_gradient_of_gradient():
+    x2 = ndl.Tensor([6])
+    x3 = ndl.Tensor([0])
+    y = x2 * x2 + x2 * x3
+    y.backward()
+    grad_x2 = x2.grad
+    grad_x3 = x3.grad
+    # gradient of gradient
+    grad_x2.backward()
+    grad_x2_x2 = x2.grad
+    grad_x2_x3 = x3.grad
+    x2_val = x2.numpy()
+    x3_val = x3.numpy()
+    assert y.numpy() == x2_val * x2_val + x2_val * x3_val
+    assert grad_x2.numpy() == 2 * x2_val + x3_val
+    assert grad_x3.numpy() == x2_val
+    assert grad_x2_x2.numpy() == 2
+    assert grad_x2_x3.numpy() == 1
+
+def weiz_explore_hessian():
+    x1 = ndl.Tensor(np.arange(4).reshape(2,2))
+    #x2 = ndl.Tensor(np.arange(4).reshape(2,2))
+    x3 = x1 * x1
+    #y = ndl.summation(x3)
+    y = x3
+    print("y: ", y)
+    y.backward()
+    print(x1.grad)
+    print(x1.grad.shape)
+    grad_x1 = x1.grad
+    grad_x1.backward()
+    print("grad_x1.grad ", grad_x1.grad)
+    print("grad_x1.grad.shape ", grad_x1.grad.shape)
+    grad_x1_x1 = x1.grad
+    print(grad_x1_x1)
+    print(grad_x1_x1.shape)
+
+def weiz_test1():
+    a = ndl.Tensor(np.array([[-0.2985143, 0.36875625], [-0.918687, 0.52262925]]))
+    b = ndl.Tensor(np.array([[-1.58839928, 1.58592338], [-0.15932137, -0.55618462]]))
+    c = ndl.Tensor(np.array([[-0.5096208, 0.73466865], [0.38762148, -0.41149092]]))
+    d = (a + b) @ c @ (a + c)
+    print(d.shape)
+    d.backward()
+    grads = [x.grad.numpy() for x in [a, b, c]]
+    [print(grad.shape) for grad in grads]
+
+def weiz_test2():
+    a_np = np.arange(4).reshape(2,2)
+    b_np = np.arange(4).reshape(2,2)
+    a = ndl.Tensor(a_np)
+    b = ndl.Tensor(b_np)
+    c = a + b
+    c.backward()
+    print(a)
+    print(a.shape)
+    print("---------")
+    print(b)
+    print(b.shape)
+
 if __name__ == "__main__":
     weiz_nn_mnist()
+    #weiz_explore_gradient_of_gradient()
+    #weiz_explore_hessian()
+    #weiz_test2()
 
 
 
