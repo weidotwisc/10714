@@ -2,7 +2,7 @@
 git clone https://github.com/dlsys10714/hw1.git
 
 # Section 2 Notes
-#TODO
+See See my overleaf ML self-study notes Section 8.2
 
 # Section 3 Tests
 
