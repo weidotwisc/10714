@@ -6,7 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$/hw1" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/hw1/python" isTestSource="false" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Remote Python 3.9.13 (sftp://weiwisc@cccxl013.pok.ibm.com:22/u/weiwisc/.pyenv/shims/python)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

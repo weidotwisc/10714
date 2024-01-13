@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="weiwisc@cccxl013.pok.ibm.com:22" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="weiwisc@cccxl013.pok.ibm.com:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/dccstor/weiz/remote_pycharm_project_root/" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
