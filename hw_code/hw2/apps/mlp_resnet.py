@@ -52,5 +52,42 @@ def train_mnist(
     ### END YOUR SOLUTION
 
 
+#### 2024-01-14, added by weiz
+def get_tensor(*shape, entropy=1):
+    np.random.seed(np.prod(shape) * len(shape) * entropy)
+    return ndl.Tensor(np.random.randint(0, 100, size=shape) / 20, dtype="float32")
+def linear_backward(lhs_shape, rhs_shape):
+    np.random.seed(199)
+    f = ndl.nn.Linear(*lhs_shape)
+    f.bias.data = get_tensor(lhs_shape[-1])
+    x = get_tensor(*rhs_shape)
+    (f(x) ** 2).sum().backward()
+    return x.grad.cached_data
+def weiz_test_nn_linear_backward_1():
+    np.testing.assert_allclose(
+        linear_backward((10, 5), (1, 10)),
+        np.array(
+            [
+                [
+                    20.61148,
+                    6.920893,
+                    -1.625556,
+                    -13.497676,
+                    -6.672813,
+                    18.762121,
+                    7.286628,
+                    8.18535,
+                    2.741301,
+                    5.723689,
+                ]
+            ],
+            dtype=np.float32,
+        ),
+        rtol=1e-5,
+        atol=1e-5,
+    )
+
 if __name__ == "__main__":
-    train_mnist(data_dir="../data")
+    #train_mnist(data_dir="../data")
+    print("weiz hw2")
+    weiz_test_nn_linear_backward_1()
