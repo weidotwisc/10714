@@ -85,8 +85,10 @@ class PowerScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        return self.scalar * array_api.power(node, self.scalar-1) * out_grad
+        return self.scalar * array_api.power(node.inputs[0], self.scalar-1) * out_grad # weiz 2024-01-16 bug fixed , only manifested during hw2
         ### END YOUR SOLUTION
+
+
 
 
 def power_scalar(a, scalar):
