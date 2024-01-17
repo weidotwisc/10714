@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("../python")
+sys.path.append("./python")
 import needle as ndl
 import needle.nn as nn
 import numpy as np
@@ -63,7 +63,7 @@ def linear_backward(lhs_shape, rhs_shape):
     x = get_tensor(*rhs_shape)
     (f(x) ** 2).sum().backward()
     return x.grad.cached_data
-def weiz_test_nn_linear_backward_1():
+def test_nn_linear_backward_1():
     np.testing.assert_allclose(
         linear_backward((10, 5), (1, 10)),
         np.array(
@@ -90,4 +90,4 @@ def weiz_test_nn_linear_backward_1():
 if __name__ == "__main__":
     #train_mnist(data_dir="../data")
     print("weiz hw2")
-    weiz_test_nn_linear_backward_1()
+    test_nn_linear_backward_1()
