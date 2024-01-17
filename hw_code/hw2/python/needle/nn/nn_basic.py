@@ -1,10 +1,10 @@
 """The module.
 """
-from typing import List, Callable, Any
+from typing import List
+
+from needle import broadcast_to
 from needle.autograd import Tensor
-from needle import ops
-import needle.init as init
-import numpy as np
+from needle.init import kaiming_uniform
 
 
 class Parameter(Tensor):
@@ -88,12 +88,16 @@ class Linear(Module):
         self.out_features = out_features
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.weight = Parameter(kaiming_uniform(in_features, out_features, requires_grad=True, dtype=dtype))
+        self.bias = Parameter(kaiming_uniform(out_features, 1, requires_grad=True, dtype=dtype).transpose()) if bias else None
         ### END YOUR SOLUTION
 
     def forward(self, X: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        Y = X@self.weight
+        if self.bias:
+            Y = Y + self.bias.broadcast_to(Y.shape)
+        return Y
         ### END YOUR SOLUTION
 
 

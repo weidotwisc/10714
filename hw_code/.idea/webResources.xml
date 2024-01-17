@@ -5,7 +5,8 @@
       <entry url="file://$PROJECT_DIR$">
         <entryData>
           <resourceRoots>
-            <path value="file://$PROJECT_DIR$/hw1" />
+            <path value="file://$PROJECT_DIR$/hw2/python" />
+            <path value="file://$PROJECT_DIR$/hw2" />
           </resourceRoots>
         </entryData>
       </entry>
