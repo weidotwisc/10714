@@ -11,6 +11,7 @@ git clone https://github.com/dlsys10714/hw2.git
 python3 -m pytest -v -k "test_init"
 python3 -m pytest -v -k "test_nn_linear"
 python3 -m pytest -v -k "test_nn_relu"
+python3 -m pytest -v -k "test_nn_sequential"
 ```
 
 
