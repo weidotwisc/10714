@@ -5,7 +5,7 @@ from typing import List
 from needle import broadcast_to
 from needle.autograd import Tensor
 from needle.init import kaiming_uniform
-
+from needle import ops
 
 class Parameter(Tensor):
     """A special kind of tensor that represents parameters."""
@@ -111,7 +111,7 @@ class Flatten(Module):
 class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return ops.relu(x)
         ### END YOUR SOLUTION
 
 
@@ -122,7 +122,9 @@ class Sequential(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        for m in self.modules:
+            x = m(x)
+        return x
         ### END YOUR SOLUTION
 
 
