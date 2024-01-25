@@ -40,7 +40,7 @@ class LogSumExp(TensorOp):
         z_minus_z_max = Z - max_z
         sum_exp_z = array_api.sum(array_api.exp(z_minus_z_max), axis=self.axes, keepdims=True) # similar to max, keep the annihiated axes as dimension 1
         assert(sum_exp_z.shape == max_z.shape)
-        return array_api.sum(array_api.log(sum_exp_z) + max_z, axis=self.axes) # in order to make the semantic correspond to keepdims=False, the result need a reduction of axes, but the actual number stay the same
+        return array_api.squeeze(array_api.log(sum_exp_z) + max_z) # in order to make the semantic correspond to keepdims=False, the result need a reduction of axes, but the actual number stay the same
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
