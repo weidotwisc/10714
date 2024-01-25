@@ -230,7 +230,7 @@ def broadcast_to(a, shape):
     return BroadcastTo(shape)(a)
 
 
-class Summation(TensorOp):
+class Summation_run0(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
         if(axes is not None):
             if(type(axes) is not tuple):
@@ -266,6 +266,39 @@ class Summation(TensorOp):
         real_shape = tuple(l)
         out_grad = out_grad.reshape(real_shape)
 
+        # step 2 broadcast to the orig_shape
+        return broadcast_to(out_grad, orig_shape)
+        ### END YOUR SOLUTION
+
+
+class Summation(TensorOp):
+    def __init__(self, axes: Optional[tuple] = None):
+        if(axes is not None):
+            if(type(axes) is not tuple):
+                assert(type(axes) is int)
+                self.axes=(axes,) # make it a tuple weiz 2024-01-02, so it behaves more like numpy.sum (i.e., axis could be just int, doesn't have to be a tuple)
+            else:
+                self.axes = axes
+        else:
+            self.axes = None
+
+
+    def compute(self, a):
+        ### BEGIN YOUR SOLUTION
+        keepdims_result = array_api.sum(a, axis=self.axes, keepdims=True) # weiz 2024-01-24 keepdims so that we know the right results shape
+        self.result_orig_shape = keepdims_result.shape
+        return array_api.squeeze(keepdims_result) # use squeeze trick so that it drops the dimension=1 axes to conform with what the professors want
+        ### END YOUR SOLUTION
+
+    def gradient(self, out_grad, node):
+        ### BEGIN YOUR SOLUTION
+        if(self.axes is None): # weiz 2023-12-30, when dealing with AD impl, realized self.axes could be None
+            # self.axes = np.arange(len(node.inputs[0].shape)) # alternatively, one can do this, but i am not sure if this node's inputs share are going to change
+            orig_shape = node.inputs[0].shape # when it is none, the out_grad is a 0-dimenional, just bcast it to the orignal shape
+            return broadcast_to(out_grad, orig_shape)
+        orig_shape = node.inputs[0].shape
+        # step 1 get real shape of out_grad
+        out_grad = out_grad.reshape(self.result_orig_shape)
         # step 2 broadcast to the orig_shape
         return broadcast_to(out_grad, orig_shape)
         ### END YOUR SOLUTION
