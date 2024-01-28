@@ -36,16 +36,24 @@ class LogSumExp(TensorOp):
 
     def compute(self, Z):
         ### BEGIN YOUR SOLUTION
+        self.fws_input_orig_shape = Z.shape
         max_z = array_api.max(Z, axis=self.axes, keepdims=True) # keep the annihilated axes as dimension 1, that is long time what I want
-        z_minus_z_max = Z - max_z
-        sum_exp_z = array_api.sum(array_api.exp(z_minus_z_max), axis=self.axes, keepdims=True) # similar to max, keep the annihiated axes as dimension 1
+        z_minus_z_max = Z - max_z # because I keep the annihilated dimension as 1, so here max_z can be bcasted to Z properly
+        f = array_api.exp(z_minus_z_max)
+        sum_exp_z = array_api.sum(f, axis=self.axes, keepdims=True) # similar to max, keep the annihiated axes as dimension 1
         assert(sum_exp_z.shape == max_z.shape)
+        self.grad_intermediate = f / sum_exp_z
+        self.fwd_output_orig_shape = max_z.shape # bookeeping the fwd output right shape
         return array_api.squeeze(array_api.log(sum_exp_z) + max_z) # in order to make the semantic correspond to keepdims=False, the result need a reduction of axes, but the actual number stay the same
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # step 1 reshape out_grad to original output shape
+        out_grad = out_grad.reshape(self.fwd_output_orig_shape)
+        out_grad = broadcast_to(out_grad, self.fwd_output_orig_shape)
+        # step 2
+        return out_grad * self.grad_intermediate
         ### END YOUR SOLUTION
 
 
