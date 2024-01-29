@@ -6,7 +6,9 @@ from needle import broadcast_to
 from needle.autograd import Tensor
 from needle.init import kaiming_uniform
 from needle import ops
-
+#import numpy as array_api
+from needle.init import one_hot # weiz 2024-01-28 one-hot encoding for SoftmaxLoss calculation
+from needle.ops import summation # weiz 2024-01-28 import summation for SoftmaxLoss calculation
 class Parameter(Tensor):
     """A special kind of tensor that represents parameters."""
 
@@ -131,7 +133,16 @@ class Sequential(Module):
 class SoftmaxLoss(Module):
     def forward(self, logits: Tensor, y: Tensor):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # weiz 2024-01-28. seems  from test cases logits always samples*classes, y is always an array of shape (samples,)
+        assert(len(logits.shape)==2) # weiz assumption that the logits are always 2D tensors
+        num_of_samples = logits.shape[0]
+        num_of_cls = logits.shape[1]
+        # target_logits = logits[array_api.arange(num_of_samples), y] # use advanced indexing in numpy not sure if ndl implements this
+        one_hot_encoding = one_hot(num_of_cls, y)
+        target_logits = summation(logits * one_hot_encoding, axes=1)
+        lse = ops.logsumexp(logits, axes=1)
+        return summation(lse-target_logits) / num_of_samples
+        #raise NotImplementedError()
         ### END YOUR SOLUTION
 
 

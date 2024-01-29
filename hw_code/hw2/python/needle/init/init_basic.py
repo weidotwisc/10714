@@ -43,7 +43,7 @@ def randb(*shape, p=0.5, device=None, dtype="bool", requires_grad=False):
     array = device.rand(*shape) <= p
     return ndl.Tensor(array, device=device, dtype=dtype, requires_grad=requires_grad)
 
-
+# weiz 2024-01-28 n is number of classes, i is the array of each target label
 def one_hot(n, i, device=None, dtype="float32", requires_grad=False):
     """Generate one-hot encoding Tensor"""
     device = ndl.cpu() if device is None else device
