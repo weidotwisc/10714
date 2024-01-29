@@ -141,7 +141,7 @@ class SoftmaxLoss(Module):
         one_hot_encoding = one_hot(num_of_cls, y)
         target_logits = summation(logits * one_hot_encoding, axes=1)
         lse = ops.logsumexp(logits, axes=1)
-        return summation(lse-target_logits) / num_of_samples
+        return summation(lse-target_logits) / num_of_samples # as in HW0 and HW1, the softmax loss is average over a minibatch
         #raise NotImplementedError()
         ### END YOUR SOLUTION
 
