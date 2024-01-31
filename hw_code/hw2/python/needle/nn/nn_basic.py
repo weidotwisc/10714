@@ -1,8 +1,9 @@
 """The module.
 """
+from functools import reduce
 from typing import List
 
-from needle import broadcast_to, power_scalar, divide
+from needle import broadcast_to, power_scalar, divide, reshape
 from needle.autograd import Tensor
 from needle.init import *
 from needle import ops
@@ -106,7 +107,11 @@ class Linear(Module):
 class Flatten(Module):
     def forward(self, X):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        shape = X.shape # weiz I am assuming X is the type of Tensor
+        assert(len(shape) >=2)
+        batch_size = shape[0]
+        unit_size = reduce(lambda x, y: x * y, shape[1:], 1) # get the unit size, i.e, the product of all the elements in shape except the first one(the batch size dimension)
+        return X.reshape((batch_size, unit_size))
         ### END YOUR SOLUTION
 
 
