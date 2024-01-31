@@ -2,9 +2,9 @@
 """
 from typing import List
 
-from needle import broadcast_to
+from needle import broadcast_to, power_scalar, divide
 from needle.autograd import Tensor
-from needle.init import kaiming_uniform
+from needle.init import *
 from needle import ops
 #import numpy as array_api
 from needle.init import one_hot # weiz 2024-01-28 one-hot encoding for SoftmaxLoss calculation
@@ -168,12 +168,28 @@ class LayerNorm1d(Module):
         self.dim = dim
         self.eps = eps
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.gain = Parameter(ones(1,dim), requires_grad=True)
+        self.bias = Parameter(zeros(1,dim), requires_grad=True)
         ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # weiz: x is 2D tensor, batch_size * feature_num
+        assert(len(x.shape) == 2) # x should be always a 2D tensor
+        m = x.shape[0]
+        n = x.shape[1]
+        E_X = summation(x, axes=1).reshape((m,1)) / n # expection of X
+        assert(E_X.shape==(m,1))
+        C_X = x - broadcast_to(E_X, x.shape) # centered X
+        assert (C_X.shape == (m, n))
+        Var_X = summation(C_X * C_X, axes=1).reshape((m, 1)) / n # variance of X
+        assert(Var_X.shape == (m,1))
+        Std_X = power_scalar((Var_X+self.eps), 0.5) # std of X
+        assert (Std_X.shape == (m, 1))
+        Norm_X = divide(C_X, broadcast_to(Std_X, x.shape)) # normalized X
+        assert(Norm_X.shape == (m, n))
+        Y = broadcast_to(self.gain, x.shape) * Norm_X + broadcast_to(self.bias, x.shape)
+        return Y
         ### END YOUR SOLUTION
 
 
