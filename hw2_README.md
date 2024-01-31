@@ -14,6 +14,7 @@ python3 -m pytest -v -k "test_nn_relu"
 python3 -m pytest -v -k "test_nn_sequential"
 python3 -m pytest -v -k "test_op_logsumexp" 
 python3 -m pytest -v -k "test_nn_softmax_loss"
+python3 -m pytest -v -k "test_nn_layernorm"
 ```
 
 
