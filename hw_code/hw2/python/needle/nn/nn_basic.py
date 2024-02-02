@@ -158,12 +158,35 @@ class BatchNorm1d(Module):
         self.eps = eps
         self.momentum = momentum
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.weight = Parameter(ones(1, dim), requires_grad=True) # weiz 2024-02-01, the fact that numpy array is almost a row vector when working with bcast make it okay to initialize it as an array as well
+        self.bias = Parameter(zeros(1, dim), requires_grad=True)
+        self.running_mean = zeros(dim)
+        self.running_var = ones(dim)
         ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if self.training:
+            assert (len(x.shape) == 2)  # x should be always a 2D tensor
+            m = x.shape[0]
+            n = x.shape[1]
+            E_X = summation(x, axes=0).reshape((1, n)) / m  # expection of X
+            assert (E_X.shape == (1, n))
+            C_X = x - broadcast_to(E_X, x.shape)  # centered X
+            assert (C_X.shape == (m, n))
+            Var_X = summation(C_X * C_X, axes=0).reshape((1, n)) / m # variance of X
+            assert (Var_X.shape == (1, n))
+            Std_X = power_scalar((Var_X + self.eps), 0.5)  # std of X
+            assert (Std_X.shape == (1, n))
+            Norm_X = divide(C_X, broadcast_to(Std_X, x.shape))  # normalized X
+            assert (Norm_X.shape == (m, n))
+            Y = broadcast_to(self.weight, x.shape) * Norm_X + broadcast_to(self.bias, x.shape)
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * E_X.reshape(-1) # weiz crazy test case that requires running_mean must be an array
+            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * Var_X.reshape(-1) # weiz crazy test case that requires running_var must be an array
+        else:
+            Norm_X = (x - broadcast_to(self.running_mean, x.shape)) / broadcast_to((self.running_var + self.eps) ** (0.5), x.shape)
+            Y =  self.weight.broadcast_to(x.shape) * Norm_X + broadcast_to(self.bias, x.shape)
+        return Y
         ### END YOUR SOLUTION
 
 
@@ -173,7 +196,7 @@ class LayerNorm1d(Module):
         self.dim = dim
         self.eps = eps
         ### BEGIN YOUR SOLUTION
-        self.gain = Parameter(ones(1,dim), requires_grad=True)
+        self.weight = Parameter(ones(1, dim), requires_grad=True)
         self.bias = Parameter(zeros(1,dim), requires_grad=True)
         ### END YOUR SOLUTION
 
@@ -193,7 +216,7 @@ class LayerNorm1d(Module):
         assert (Std_X.shape == (m, 1))
         Norm_X = divide(C_X, broadcast_to(Std_X, x.shape)) # normalized X
         assert(Norm_X.shape == (m, n))
-        Y = broadcast_to(self.gain, x.shape) * Norm_X + broadcast_to(self.bias, x.shape)
+        Y = broadcast_to(self.weight, x.shape) * Norm_X + broadcast_to(self.bias, x.shape)
         return Y
         ### END YOUR SOLUTION
 
