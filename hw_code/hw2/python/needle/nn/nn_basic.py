@@ -7,7 +7,7 @@ from needle import broadcast_to, power_scalar, divide, reshape
 from needle.autograd import Tensor
 from needle.init import *
 from needle import ops
-#import numpy as array_api
+import numpy as array_api
 from needle.init import one_hot # weiz 2024-01-28 one-hot encoding for SoftmaxLoss calculation
 from needle.ops import summation # weiz 2024-01-28 import summation for SoftmaxLoss calculation
 class Parameter(Tensor):
@@ -228,7 +228,16 @@ class Dropout(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if(self.training):
+            # * is unpacking operator that converts tuple to sequence of numbers
+            probs = randb(*x.shape, p=1-self.p) # p is the probability to be zeroed
+            # and the randb impl is random_choice<=p,
+            # thus randb(1-self.p) is the right percentage to be one-ed
+            # e.g., p=0.2 means 20% will be zeroed,
+            # thus 1/(1-0.2) ratio need be scaled
+            return x * probs * (1/(1-self.p))
+        else:
+            return x
         ### END YOUR SOLUTION
 
 
