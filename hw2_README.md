@@ -18,6 +18,7 @@ python3 -m pytest -v -k "test_nn_layernorm"
 python3 -m pytest -v -k "test_nn_flatten"
 python3 -m pytest -v -k "test_nn_batchnorm"
 python3 -m pytest -v -k "test_nn_dropout"
+python3 -m pytest -v -k "test_nn_residual"
 ```
 
 
