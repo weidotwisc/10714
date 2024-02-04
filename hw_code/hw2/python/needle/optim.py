@@ -1,5 +1,5 @@
 """Optimization module"""
-
+from collections import defaultdict
 
 import needle as ndl
 import numpy as np
@@ -68,7 +68,22 @@ class Adam(Optimizer):
         self.m = {}
         self.v = {}
 
+
+
     def step(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        self.t = self.t + 1
+        for param in self.params:
+            grad_included_wd = param.grad.data + self.weight_decay * param.data
+            if(param not in self.m):
+                self.m[param] = (1-self.beta1) * grad_included_wd
+            else:
+                self.m[param] = self.beta1 * self.m[param] + (1-self.beta1) * grad_included_wd
+            if(param not in self.v):
+                self.v[param] = (1-self.beta2) * (grad_included_wd * grad_included_wd)
+            else:
+                self.v[param] = self.beta2 * self.v[param] + (1-self.beta2) * (grad_included_wd * grad_included_wd)
+            m_hat = self.m[param] / (1 - self.beta1 ** self.t)
+            v_hat = self.v[param] / (1 - self.beta2 **self.t)
+            param.data = param.data - self.lr * m_hat / (v_hat ** 0.5 + self.eps)
+        ## END YOUR SOLUTION
