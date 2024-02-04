@@ -1,4 +1,6 @@
 """Optimization module"""
+
+
 import needle as ndl
 import numpy as np
 
@@ -25,7 +27,15 @@ class SGD(Optimizer):
 
     def step(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        for param in self.params:
+            grad_included_wd = param.grad.data + param.data *self.weight_decay
+            if param not in self.u:
+                self.u[param] = grad_included_wd * (1-self.momentum) # apparently hw asked for an initialization where self.u[param] was initialized as 0s
+                 # and not the first gradients.
+                 # Bascially, never trusts any gradient (assuming my momentum is a big one e.g., 0.9)
+            else:
+                self.u[param] = self.momentum * self.u[param] + (1-self.momentum) * grad_included_wd
+            param.data = param.data - self.lr * self.u[param]
         ### END YOUR SOLUTION
 
     def clip_grad_norm(self, max_norm=0.25):
