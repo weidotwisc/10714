@@ -143,6 +143,8 @@ class DivScalar(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
+        if(isinstance(self.scalar, int)): # weiz 2024-02-03, ugly hack to make the setter type check pass TODO!!
+            self.scalar = a.dtype.type(self.scalar)
         return array_api.divide(a, self.scalar)
         ### END YOUR SOLUTION
 
