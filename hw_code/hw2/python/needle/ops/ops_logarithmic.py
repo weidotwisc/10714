@@ -44,7 +44,8 @@ class LogSumExp(TensorOp):
         assert(sum_exp_z.shape == max_z.shape)
         self.grad_intermediate = f / sum_exp_z
         self.fwd_output_orig_shape = max_z.shape # bookeeping the fwd output right shape
-        return array_api.squeeze(array_api.log(sum_exp_z) + max_z) # in order to make the semantic correspond to keepdims=False, the result need a reduction of axes, but the actual number stay the same
+        lse = array_api.squeeze(array_api.log(sum_exp_z) + max_z) # in order to make the semantic correspond to keepdims=False, the result need a reduction of axes, but the actual number stay the same
+        return lse
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):

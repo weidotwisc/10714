@@ -141,13 +141,15 @@ class DivScalar(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
+        if(isinstance(self.scalar, int)): # weiz 2024-02-03, ugly hack to make the setter type check pass TODO!!
+            self.scalar = a.dtype.type(self.scalar)
         return array_api.divide(a, self.scalar)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         #result = ndl.Tensor(1/self.scalar) * (out_grad) # weiz 2023-12-25, for bwd pass, result seems have to be ndl tensor type ?, whereas fwd has no such type constraint ?
-        result = out_grad * (1/self.scalar) # weiz 2023-01-02 seems that even I don't have to cast it to ndl.Tensor, maybe because *operator make it result a class of ndl.Tensor
+        result = out_grad / self.scalar # weiz 2023-01-02 seems that even I don't have to cast it to ndl.Tensor, maybe because *operator make it result a class of ndl.Tensor
         return result
         ### END YOUR SOLUTION
 
