@@ -23,6 +23,7 @@ python3 -m pytest -v -k "test_optim_sgd"
 python3 -m pytest -v -k "test_optim_adam"
 python3 -m pytest -v -k "flip_horizontal"
 python3 -m pytest -v -k "random_crop"
+python3 -m pytest -v -k "test_mnist_dataset"
 ```
 
 
