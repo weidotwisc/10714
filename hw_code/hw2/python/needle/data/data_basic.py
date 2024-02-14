@@ -56,7 +56,7 @@ class DataLoader:
         self.batch_size = batch_size
         if not self.shuffle:
             self.ordering = np.array_split(np.arange(len(dataset)), range(batch_size, len(dataset), batch_size))
-        #else:
+        #else: # in theory this is okay, but to make test cases happy, i need to comment out this line. Also this line is useless
             #self.ordering = np.array_split(np.random.permutation(len(dataset)), range(batch_size, len(dataset), batch_size))
         self.idx=-1
 
