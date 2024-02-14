@@ -55,17 +55,38 @@ class DataLoader:
         self.shuffle = shuffle
         self.batch_size = batch_size
         if not self.shuffle:
-            self.ordering = np.array_split(np.arange(len(dataset)), 
-                                           range(batch_size, len(dataset), batch_size))
+            self.ordering = np.array_split(np.arange(len(dataset)), range(batch_size, len(dataset), batch_size))
+        #else:
+            #self.ordering = np.array_split(np.random.permutation(len(dataset)), range(batch_size, len(dataset), batch_size))
+        self.idx=-1
 
     def __iter__(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
         ### END YOUR SOLUTION
+        self.idx = -1
+        if self.shuffle:
+            self.ordering = np.array_split(np.random.permutation(len(self.dataset)),
+                                           range(self.batch_size, len(self.dataset), self.batch_size))
         return self
 
     def __next__(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.idx = self.idx + 1
+        if self.idx >= len(self.ordering):
+            raise StopIteration
+        batch = self.ordering[self.idx]
+        #print(batch)
+        samples = [self.dataset[i] for i in batch] # a list of samples, each sample is an item from dataset, it could be
+        #print(samples)
+
+        if(len(samples[0]) == 2): # TODO i only handle data,label and data for now
+            data_lst, label_lst = zip(*samples)
+            data_tensor = Tensor(np.stack(data_lst))
+            label_tensor = Tensor(np.stack(label_lst))
+            return (data_tensor, label_tensor) # seems either tuple or list would work
+        elif(len(samples[0])==1):
+            data_list = [s[0] for s in samples]
+            data_tensor = Tensor(np.stack(data_list))
+            return (data_tensor,) # seems either tuple of list would work
         ### END YOUR SOLUTION
 
