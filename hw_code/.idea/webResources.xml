@@ -6,7 +6,7 @@
         <entryData>
           <resourceRoots>
             <path value="file://$PROJECT_DIR$/hw2/python" />
-            <path value="file://$PROJECT_DIR$/hw2" />
+            <path value="file://$PROJECT_DIR$/hw2/apps" />
           </resourceRoots>
         </entryData>
       </entry>

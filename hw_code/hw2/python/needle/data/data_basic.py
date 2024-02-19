@@ -81,6 +81,7 @@ class DataLoader:
 
         if(len(samples[0]) == 2): # TODO i only handle data,label and data for now
             data_lst, label_lst = zip(*samples)
+            #data_lst = [data.reshape(-1) for data in data_lst]
             data_tensor = Tensor(np.stack(data_lst))
             label_tensor = Tensor(np.stack(label_lst))
             return (data_tensor, label_tensor) # seems either tuple or list would work
