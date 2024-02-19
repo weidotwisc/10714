@@ -30,4 +30,8 @@ python3 -m pytest -v -k "test_mlp"
 
 
 # Section 3.2 Full Functionality Tests
-
+For the final mlp_resnet test, I get
+```
+Epoch10 train_err 0.014016666666666667, train_loss 0.04696077882467459
+Epoch10 test_err 0.0265, test_loss 0.08526339300791733
+```
