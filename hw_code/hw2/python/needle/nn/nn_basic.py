@@ -138,15 +138,16 @@ class Sequential(Module):
 class SoftmaxLoss(Module):
     def forward(self, logits: Tensor, y: Tensor):
         ### BEGIN YOUR SOLUTION
-        # weiz 2024-01-28. seems  from test cases logits always samples*classes, y is always an array of shape (samples,)
+        # weiz 2024-01-28. seems  from test cases logits shape always samples by classes, y is always an array of shape (samples,)
         assert(len(logits.shape)==2) # weiz assumption that the logits are always 2D tensors
         num_of_samples = logits.shape[0]
         num_of_cls = logits.shape[1]
         # target_logits = logits[array_api.arange(num_of_samples), y] # use advanced indexing in numpy not sure if ndl implements this
+        LSE = ops.logsumexp(logits, axes=1)
         one_hot_encoding = one_hot(num_of_cls, y)
         target_logits = summation(logits * one_hot_encoding, axes=1)
-        lse = ops.logsumexp(logits, axes=1)
-        result_sum = summation(lse-target_logits)
+        loss_per_sample_vec = LSE - target_logits
+        result_sum = summation(loss_per_sample_vec)
         result = result_sum / num_of_samples # as in HW0 and HW1, the softmax loss is average over a minibatch
         return result
         #raise NotImplementedError()
