@@ -247,8 +247,12 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        new_strides = self.compact_strides(new_shape)
-        return NDArray.make(new_shape, strides=new_strides, device=self.device, handle=self._handle)
+        if prod(new_shape) != prod(self.shape):
+            raise ValueError("Product of current shape is not equal to the product!")
+        if not self.is_compact():
+            raise ValueError("The matrix is not compact!")
+        new_strides = NDArray.compact_strides(new_shape)
+        return NDArray.make(new_shape, strides=new_strides, device=self._device, handle=self._handle)
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):
