@@ -251,7 +251,8 @@ class NDArray:
             raise ValueError("Product of current shape is not equal to the product!")
         if not self.is_compact():
             raise ValueError("The matrix is not compact!")
-        new_strides = NDArray.compact_strides(new_shape)
+        #new_strides = NDArray.compact_strides(new_shape)
+        new_strides = tuple([prod(new_shape[i+1:]) for i in range(len(new_shape))]) # weiz 2024-03-19 my own way calculating strides
         return NDArray.make(new_shape, strides=new_strides, device=self._device, handle=self._handle)
         ### END YOUR SOLUTION
 
