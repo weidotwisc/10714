@@ -247,7 +247,7 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        if prod(new_shape) != prod(self.shape):
+        if prod(new_shape) != prod(self._shape):
             raise ValueError("Product of current shape is not equal to the product!")
         if not self.is_compact():
             raise ValueError("The matrix is not compact!")
