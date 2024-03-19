@@ -3,9 +3,9 @@ project(needle C CXX)
 cmake_policy(SET CMP0146 OLD)
 
 # find correct version of Python
-set(Python_EXECUTABLE /mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python)
-#execute_process(COMMAND python3-config --prefix
-#  OUTPUT_VARIABLE Python_ROOT_DIR)
+set(Python_EXECUTABLE /mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python) # weiz 2024-03-18 specify the python that I want
+execute_process(COMMAND python3-config --prefix
+  OUTPUT_VARIABLE Python_ROOT_DIR)
 find_package(Python COMPONENTS Development Interpreter REQUIRED)
 include_directories(${Python_INCLUDE_DIRS})
 
