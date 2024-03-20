@@ -278,7 +278,9 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        permuted_shape = tuple(self._shape[i] for i in new_axes)
+        permuted_strides = tuple(self._strides[i] for i in new_axes)
+        return NDArray.make(permuted_shape, strides=permuted_strides, device=self._device, handle=self._handle)
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
