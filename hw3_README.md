@@ -20,6 +20,7 @@ export NEEDLE_BACKEND=nd
 # Section 3.1 Unit Tests
 ```bash
 python3 -m pytest -v -k "reshape"
+python3 -m pytest -v -k "permute" 
 ```
 
 
