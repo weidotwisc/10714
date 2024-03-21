@@ -304,16 +304,14 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        if(len(self._shape) != len (new_shape)):
-            raise ValueError("bcast shape len not matching")
+        assert(len(self._shape) == len (new_shape))
         new_strides=list(self._strides)
         for i in range(len(new_shape)):
             if(self._shape[i] == 1):
                 if(new_shape[i] > 1):
                     new_strides[i]=0
             else:
-                if (new_shape[i] != self._shape[i]):
-                    raise ValueError("bcast shape mismatch")
+                assert(self._shape[i] == new_shape[i])
         return NDArray.make(new_shape, strides=tuple(new_strides), device=self._device, handle=self._handle)
 
         ### END YOUR SOLUTION
