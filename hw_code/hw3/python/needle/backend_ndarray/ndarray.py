@@ -304,7 +304,18 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if(len(self._shape) != len (new_shape)):
+            raise ValueError("bcast shape len not matching")
+        new_strides=list(self._strides)
+        for i in range(len(new_shape)):
+            if(self._shape[i] == 1):
+                if(new_shape[i] > 1):
+                    new_strides[i]=0
+            else:
+                if (new_shape[i] != self._shape[i]):
+                    raise ValueError("bcast shape mismatch")
+        return NDArray.make(new_shape, strides=tuple(new_strides), device=self._device, handle=self._handle)
+
         ### END YOUR SOLUTION
 
     ### Get and set elements
