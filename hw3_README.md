@@ -20,7 +20,8 @@ export NEEDLE_BACKEND=nd
 # Section 3.1 Unit Tests
 ```bash
 python3 -m pytest -v -k "reshape"
-python3 -m pytest -v -k "permute" 
+python3 -m pytest -v -k "permute"
+python3 -m pytest -v -k "test_broadcast_to" # for some reason if i only specify broadcast, it will also test compact(), which i haven't implemented yet
 ```
 
 
