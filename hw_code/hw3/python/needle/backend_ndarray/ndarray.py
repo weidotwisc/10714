@@ -380,7 +380,14 @@ class NDArray:
         assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_shape = []
+        new_strides = []
+        new_offset = idxs[0].start * self._strides[0]
+        for dim, slice in enumerate(idxs): # weiz 2023-04-17 note slice is for each dimension
+            new_shape.append(math.ceil( (slice.stop-slice.start)/slice.step ))
+            new_strides.append(self._strides[dim]*slice.step)
+
+        return NDArray.make(shape=tuple(new_shape), strides=tuple(new_strides), device=self._device, handle=self._handle, offset=new_offset) # weiz 204-04-15, back into studying this course
         ### END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
