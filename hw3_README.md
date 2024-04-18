@@ -1,4 +1,5 @@
 # Section 1 Prep
+Note this homework must be built on dyce machine (or GPU machines)!
 ```bash
 git clone https://github.com/dlsys10714/hw3.git
 pip install cmake --upgrade # too old cmake will not work for cuda
@@ -22,6 +23,7 @@ export NEEDLE_BACKEND=nd
 python3 -m pytest -v -k "reshape"
 python3 -m pytest -v -k "permute"
 python3 -m pytest -v -k "test_broadcast_to" # for some reason if i only specify broadcast, it will also test compact(), which i haven't implemented yet
+python3 -m pytest -v -k "getitem and cpu and not compact"
 ```
 
 
