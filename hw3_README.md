@@ -1,5 +1,4 @@
 # Section 1 Prep
-Note this homework must be built on dyce machine (or GPU machines)!
 ```bash
 git clone https://github.com/dlsys10714/hw3.git
 pip install cmake --upgrade # too old cmake will not work for cuda
@@ -8,9 +7,17 @@ In CMakeLists.txt add the following the specify the right python to use
 ```bash
 set(Python_EXECUTABLE /mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python) # weiz 2024-03-18 specify the python that I want
 ```
+Then do 
+```bash
+cmake #(?? to test again on CCC)
+make
+```
 
-# Section 2 Notes
-#TODO
+# Section 2 Project directory 
+Note this homework must be built on dyce machine (or GPU machines)!
+On dyce, the directory is at 
+
+```/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw3```
 
 # Section 3 Tests
 ```bash
