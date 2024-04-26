@@ -54,7 +54,7 @@ void fill_tensor_at(std::vector<int32_t> & repr, std::vector<int32_t> & src_stri
 		dst_ptr_offset += repr[i]*dst_strides[i];
 	}
 	*(dst_ptr+dst_ptr_offset) = *(src_ptr+src_ptr_offset);
-	std::cout<<"!!! "<<"offset: "<<dst_ptr_offset<<" val: "<<*(dst_ptr+dst_ptr_offset)<<std::endl;
+	//std::cout<<"!!! "<<"offset: "<<dst_ptr_offset<<" val: "<<*(dst_ptr+dst_ptr_offset)<<std::endl;
 }
 
 /**
@@ -105,21 +105,18 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
 	std::cout<<"step 0"<<std::endl;
 	// step 1 set up
 	scalar_t *src_ptr = a.ptr+offset;
-	std::cout<<src_ptr<<std::endl;
 	scalar_t *dst_ptr = out->ptr;
 	assert(shape.size() == strides.size());
 	size_t dim = shape.size();
 	std::vector<int> dst_strides(dim, 0);
 	dst_strides[dim-1] = 1; // dst_strides highest dimension is always 1, as it is always compact
-	std::cout<<dst_strides.size()<<std::endl;
 	size_t stride_at_dim = 1;
-	for(int i = dim-2; i >=0 ; --i){
-		std::cout<<"shape["<<i-1<<"]:"<<shape[i-1]<<std::endl;
+	for(int i = dim-2; i >=0 ; --i){ // get strides for output tensor (always compact), had two bugs here:(1) use int i to avoid
+		           // underflow, (ii) use my own formula to calculate strides
 		stride_at_dim *= shape[i+1];
-		std::cout<<"stride at dim:"<<stride_at_dim<<std::endl;
 		dst_strides[i] = stride_at_dim;
 	}
-	std::cout<<"step 1"<<std::endl;
+	//std::cout<<"step 1"<<std::endl;
 	// step 2 calculate the total number of elements and prepare representation vector
 	size_t num_of_elements = 1;
 	std::vector<int32_t> repr;
@@ -127,7 +124,7 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
 		num_of_elements *= (*it);
 		repr.push_back(*it-1);
 	}
-	std::cout<<"step 2"<<std::endl;
+	//std::cout<<"step 2"<<std::endl;
 	// step 3 iterate repr
 	size_t num_elem_processed = 0;
 	while(num_elem_processed < num_of_elements){
