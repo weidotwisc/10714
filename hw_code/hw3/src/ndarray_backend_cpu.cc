@@ -43,7 +43,47 @@ void Fill(AlignedArray* out, scalar_t val) {
   }
 }
 
+void fill_tensor_at(std::vector<int32_t> & repr, std::vector<int32_t> & src_strides, std::vector<int32_t> & dst_strides,
+		scalar_t * src_ptr, scalar_t * dst_ptr){
+	assert(repr.size() == src_strides.size());
+	assert(repr.size() == dst_strides.size());
+	size_t src_ptr_offset = 0;
+	size_t dst_ptr_offset = 0;
+	for (size_t i = 0; i < repr.size(); ++i){
+		src_ptr_offset += repr[i]*src_strides[i];
+		dst_ptr_offset += repr[i]*dst_strides[i];
+	}
+	*(dst_ptr+dst_ptr_offset) = *(src_ptr+src_ptr_offset);
+	std::cout<<"!!! "<<"offset: "<<dst_ptr_offset<<" val: "<<*(dst_ptr+dst_ptr_offset)<<std::endl;
+}
 
+/**
+ * called when the last dimension is exhausted,
+ * return the dimension where it will start exploring, -1 if the entire repr space is explored.
+ */
+int reload(std::vector<int32_t> & repr, std::vector<int32_t> & shape){
+	size_t dim = repr.size();
+	assert(dim == shape.size());
+	assert(repr[dim-1]==-1);
+	if(dim==1){ // repr is just one element
+		return -1;
+	}
+	// find the highest dimension i where repr[i] is not zero, decrement and start exploring
+	int highest_dim_not_zero_idx = dim-2;
+	while( (highest_dim_not_zero_idx>=0) && repr[highest_dim_not_zero_idx]==0){
+		highest_dim_not_zero_idx--;
+	}
+	if(highest_dim_not_zero_idx>=0){ // has more space to explore
+		repr[highest_dim_not_zero_idx]--;
+		for(size_t i = highest_dim_not_zero_idx+1; i < dim; ++i){
+			repr[i] = shape[i]-1;
+		}
+		return highest_dim_not_zero_idx;
+	}else{ // no more space to explore
+		assert(highest_dim_not_zero_idx==-1);
+		return highest_dim_not_zero_idx;
+	}
+}
 
 void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
              std::vector<int32_t> strides, size_t offset) {
@@ -62,8 +102,47 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
    *  function will implement here, so we won't repeat this note.)
    */
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
-  /// END SOLUTION
+	std::cout<<"step 0"<<std::endl;
+	// step 1 set up
+	scalar_t *src_ptr = a.ptr+offset;
+	std::cout<<src_ptr<<std::endl;
+	scalar_t *dst_ptr = out->ptr;
+	assert(shape.size() == strides.size());
+	size_t dim = shape.size();
+	std::vector<int> dst_strides(dim, 0);
+	dst_strides[dim-1] = 1; // dst_strides highest dimension is always 1, as it is always compact
+	std::cout<<dst_strides.size()<<std::endl;
+	size_t stride_at_dim = 1;
+	for(int i = dim-2; i >=0 ; --i){
+		std::cout<<"shape["<<i-1<<"]:"<<shape[i-1]<<std::endl;
+		stride_at_dim *= shape[i+1];
+		std::cout<<"stride at dim:"<<stride_at_dim<<std::endl;
+		dst_strides[i] = stride_at_dim;
+	}
+	std::cout<<"step 1"<<std::endl;
+	// step 2 calculate the total number of elements and prepare representation vector
+	size_t num_of_elements = 1;
+	std::vector<int32_t> repr;
+	for(std::vector<int32_t>::iterator it = shape.begin(); it != shape.end(); ++it){
+		num_of_elements *= (*it);
+		repr.push_back(*it-1);
+	}
+	std::cout<<"step 2"<<std::endl;
+	// step 3 iterate repr
+	size_t num_elem_processed = 0;
+	while(num_elem_processed < num_of_elements){
+		fill_tensor_at(repr, strides, dst_strides, src_ptr, dst_ptr);
+		num_elem_processed++;
+		repr[dim-1]--;
+		if(repr[dim-1] == -1){ // when the highest dimension has been explored
+			int res = reload(repr, shape);
+			if (res == -1 ){
+				assert(num_elem_processed == num_of_elements);
+				return;
+			}
+		}
+	}
+	return;
 }
 
 void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
