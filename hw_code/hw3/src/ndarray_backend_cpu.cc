@@ -43,9 +43,6 @@ void Fill(AlignedArray* out, scalar_t val) {
   }
 }
 
-/**
- * return strides for compact tensor, given tensor's shape
- */
 std::vector<int32_t> get_compact_strides(std::vector<int32_t> shape){
 	size_t dim = shape.size();
 	std::vector<int> compact_strides(dim, 0);
@@ -59,8 +56,9 @@ std::vector<int32_t> get_compact_strides(std::vector<int32_t> shape){
 	return compact_strides;
 }
 
-void fill_tensor_at(std::vector<int32_t> & repr, std::vector<int32_t> & src_strides, std::vector<int32_t> & dst_strides,
-		scalar_t * src_ptr, scalar_t * dst_ptr){
+void fill_tensor_at(scalar_t * dst_ptr, const scalar_t * src_ptr,
+		std::vector<int32_t> & dst_strides, std::vector<int32_t> & src_strides,
+		std::vector<int32_t> & repr){
 	assert(repr.size() == src_strides.size());
 	assert(repr.size() == dst_strides.size());
 	size_t src_ptr_offset = 0;
@@ -70,7 +68,8 @@ void fill_tensor_at(std::vector<int32_t> & repr, std::vector<int32_t> & src_stri
 		dst_ptr_offset += repr[i]*dst_strides[i];
 	}
 	*(dst_ptr+dst_ptr_offset) = *(src_ptr+src_ptr_offset);
-	//std::cout<<"!!! "<<"offset: "<<dst_ptr_offset<<" val: "<<*(dst_ptr+dst_ptr_offset)<<std::endl;
+	//std::cout<<"!!! "<<"src offset: "<<src_ptr_offset<<" val: "<<*(src_ptr+src_ptr_offset)<<std::endl;
+	//std::cout<<"!!! "<<"dst offset: "<<dst_ptr_offset<<" val: "<<*(dst_ptr+dst_ptr_offset)<<std::endl;
 }
 
 /**
@@ -101,6 +100,40 @@ int reload(std::vector<int32_t> & repr, std::vector<int32_t> & shape){
 	}
 }
 
+void tensor_assign(scalar_t *dest_ptr, const scalar_t *src_ptr,size_t dest_offset, size_t src_offset,
+		std::vector<int32_t> dest_strides, std::vector<int32_t> src_strides,
+		std::vector<int32_t> shape
+		){
+
+	// step1 initialize num_of_elements and repr
+	size_t num_of_elements = 1;
+	std::vector<int32_t> repr;
+	for(std::vector<int32_t>::iterator it = shape.begin(); it != shape.end(); ++it){
+		num_of_elements *= (*it);
+		repr.push_back(*it-1);
+	}
+	size_t dim = shape.size();
+	scalar_t * real_dest_ptr = dest_ptr + dest_offset;
+	const scalar_t * real_src_ptr = src_ptr + src_offset;
+
+	// step 2 iterate repr
+	size_t num_elem_processed = 0;
+	while(num_elem_processed < num_of_elements){
+		//fill_tensor_at(repr, strides, dst_strides, src_ptr, dst_ptr);
+		fill_tensor_at(real_dest_ptr, real_src_ptr, dest_strides, src_strides, repr);
+		num_elem_processed++;
+		repr[dim-1]--;
+		if(repr[dim-1] == -1){ // when the highest dimension has been explored
+			int res = reload(repr, shape);
+			if (res == -1 ){
+				assert(num_elem_processed == num_of_elements);
+				return;
+			}
+		}
+	}
+	return;
+}
+
 void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
              std::vector<int32_t> strides, size_t offset) {
   /**
@@ -120,36 +153,12 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
   /// BEGIN SOLUTION
 	//std::cout<<"step 0"<<std::endl;
 	// step 1 set up
-	scalar_t *src_ptr = a.ptr+offset;
-	scalar_t *dst_ptr = out->ptr;
-	assert(shape.size() == strides.size());
-	size_t dim = shape.size();
+	//scalar_t *src_ptr = a.ptr+offset;
+	//scalar_t *dst_ptr = out->ptr;
+	//assert(shape.size() == strides.size());
+	//size_t dim = shape.size();
 	std::vector<int32_t> dst_strides = get_compact_strides(shape);
-
-
-	//std::cout<<"step 1"<<std::endl;
-	// step 2 calculate the total number of elements and prepare representation vector
-	size_t num_of_elements = 1;
-	std::vector<int32_t> repr;
-	for(std::vector<int32_t>::iterator it = shape.begin(); it != shape.end(); ++it){
-		num_of_elements *= (*it);
-		repr.push_back(*it-1);
-	}
-	//std::cout<<"step 2"<<std::endl;
-	// step 3 iterate repr
-	size_t num_elem_processed = 0;
-	while(num_elem_processed < num_of_elements){
-		fill_tensor_at(repr, strides, dst_strides, src_ptr, dst_ptr);
-		num_elem_processed++;
-		repr[dim-1]--;
-		if(repr[dim-1] == -1){ // when the highest dimension has been explored
-			int res = reload(repr, shape);
-			if (res == -1 ){
-				assert(num_elem_processed == num_of_elements);
-				return;
-			}
-		}
-	}
+	tensor_assign(out->ptr, a.ptr, 0, offset, dst_strides, strides, shape);
 	return;
 }
 
