@@ -43,6 +43,9 @@ void Fill(AlignedArray* out, scalar_t val) {
   }
 }
 
+/**
+ * return strides for compact tensor, given tensor's shape
+ */
 std::vector<int32_t> get_compact_strides(std::vector<int32_t> shape){
 	size_t dim = shape.size();
 	std::vector<int> compact_strides(dim, 0);
@@ -58,7 +61,7 @@ std::vector<int32_t> get_compact_strides(std::vector<int32_t> shape){
 
 void fill_tensor_at(scalar_t * dst_ptr, const scalar_t * src_ptr,
 		std::vector<int32_t> & dst_strides, std::vector<int32_t> & src_strides,
-		std::vector<int32_t> & repr){
+		std::vector<int32_t> & repr, scalar_t src_val=0){
 	assert(repr.size() == src_strides.size());
 	assert(repr.size() == dst_strides.size());
 	size_t src_ptr_offset = 0;
@@ -67,7 +70,11 @@ void fill_tensor_at(scalar_t * dst_ptr, const scalar_t * src_ptr,
 		src_ptr_offset += repr[i]*src_strides[i];
 		dst_ptr_offset += repr[i]*dst_strides[i];
 	}
-	*(dst_ptr+dst_ptr_offset) = *(src_ptr+src_ptr_offset);
+	if(src_ptr != NULL){
+		*(dst_ptr+dst_ptr_offset) = *(src_ptr+src_ptr_offset);
+	}else{
+		*(dst_ptr+dst_ptr_offset) = src_val;
+	}
 	//std::cout<<"!!! "<<"src offset: "<<src_ptr_offset<<" val: "<<*(src_ptr+src_ptr_offset)<<std::endl;
 	//std::cout<<"!!! "<<"dst offset: "<<dst_ptr_offset<<" val: "<<*(dst_ptr+dst_ptr_offset)<<std::endl;
 }
@@ -102,7 +109,8 @@ int reload(std::vector<int32_t> & repr, std::vector<int32_t> & shape){
 
 void tensor_assign(scalar_t *dest_ptr, const scalar_t *src_ptr,size_t dest_offset, size_t src_offset,
 		std::vector<int32_t> dest_strides, std::vector<int32_t> src_strides,
-		std::vector<int32_t> shape
+		std::vector<int32_t> shape,
+		scalar_t src_val = 0
 		){
 
 	// step1 initialize num_of_elements and repr
@@ -120,7 +128,7 @@ void tensor_assign(scalar_t *dest_ptr, const scalar_t *src_ptr,size_t dest_offse
 	size_t num_elem_processed = 0;
 	while(num_elem_processed < num_of_elements){
 		//fill_tensor_at(repr, strides, dst_strides, src_ptr, dst_ptr);
-		fill_tensor_at(real_dest_ptr, real_src_ptr, dest_strides, src_strides, repr);
+		fill_tensor_at(real_dest_ptr, real_src_ptr, dest_strides, src_strides, repr, src_val);
 		num_elem_processed++;
 		repr[dim-1]--;
 		if(repr[dim-1] == -1){ // when the highest dimension has been explored
@@ -189,7 +197,7 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    * Set items is a (non-compact) array
    *
    * Args:
-   *   size: number of elements to write in out array (note that this will note be the same as
+   *   size: number of elements to write in out array (note that this will not be the same as
    *         out.size, because out is a non-compact subset array);  it _will_ be the same as the
    *         product of items in shape, but convenient to just pass it here.
    *   val: scalar value to write to
@@ -200,7 +208,10 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    */
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+	std::vector<int32_t> dst_strides = strides;
+	std::vector<int32_t> src_strides = get_compact_strides(shape);
+	scalar_t * dst_ptr = out->ptr; // offset is dst ptr offset
+	tensor_assign(out->ptr, NULL, offset, 0, dst_strides, src_strides, shape, val);
   /// END SOLUTION
 }
 
