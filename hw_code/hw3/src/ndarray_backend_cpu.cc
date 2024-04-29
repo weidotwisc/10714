@@ -175,7 +175,11 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<int32_t>
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+	std::vector<int32_t> dst_strides = strides;
+	std::vector<int32_t> src_strides = get_compact_strides(shape);
+	scalar_t * dst_ptr = out->ptr; // offset is dst ptr offset
+	const scalar_t * src_ptr = a.ptr;
+	tensor_assign(dst_ptr, src_ptr, offset, 0, dst_strides, src_strides, shape);
   /// END SOLUTION
 }
 
