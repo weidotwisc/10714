@@ -32,6 +32,7 @@ python3 -m pytest -v -k "permute"
 python3 -m pytest -v -k "test_broadcast_to" # for some reason if i only specify broadcast, it will also test compact(), which i haven't implemented yet
 python3 -m pytest -v -k "getitem and cpu and not compact"
 python3 -m pytest -v -k "compact and cpu"
+python3 -m pytest -v -k "setitem and cpu"
 ```
 
 
