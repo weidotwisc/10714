@@ -33,6 +33,7 @@ python3 -m pytest -v -k "test_broadcast_to" # for some reason if i only specify 
 python3 -m pytest -v -k "getitem and cpu and not compact"
 python3 -m pytest -v -k "compact and cpu"
 python3 -m pytest -v -k "setitem and cpu"
+python3 -m pytest -v -k "(ewise_fn or ewise_max or log or exp or tanh or (scalar and not setitem)) and cpu"
 ```
 
 
