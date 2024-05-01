@@ -330,7 +330,7 @@ void ScalarEq(const AlignedArray& a, scalar_t val, AlignedArray* out) {
 }
 
 scalar_t _ge(scalar_t a, scalar_t b){
-	return a==b;
+	return a>=b;
 }
 void EwiseGe(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
 	EwiseFunc(a, b, out, _ge);
