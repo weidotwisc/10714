@@ -441,6 +441,22 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
   /// END SOLUTION
 }
 
+
+template<typename F, typename I>
+void ReduceTemplateFunc(const AlignedArray& a, AlignedArray* out, size_t reduce_size, F reduce_func, I reduce_id){
+	assert(a.size == out->size * reduce_size);
+	size_t out_ptr_idx=0;
+	for(size_t i = 0; i < a.size; i+=reduce_size){
+		scalar_t _reduce_result = reduce_id;
+		for(size_t j=i; j < i+reduce_size;++j){
+			_reduce_result = reduce_func(_reduce_result, a.ptr[j]);
+		}
+		out->ptr[out_ptr_idx++] = _reduce_result;
+	}
+}
+
+
+
 void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
   /**
    * Reduce by taking maximum over `reduce_size` contiguous blocks.
@@ -452,8 +468,14 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+	ReduceTemplateFunc(a, out, reduce_size, _max, std::numeric_limits<scalar_t>::lowest());
   /// END SOLUTION
+
+}
+
+
+scalar_t _sum(scalar_t a, scalar_t b){
+	return a+b;
 }
 
 void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
@@ -467,9 +489,10 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+	ReduceTemplateFunc(a, out, reduce_size, _sum, 0);
   /// END SOLUTION
 }
+
 
 }  // namespace cpu
 }  // namespace needle
