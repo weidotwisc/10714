@@ -381,9 +381,20 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uin
    */
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  assert(a.size == m*n);
+  assert(b.size == n*p);
+  assert(out->size == m*p);
+  for(size_t i = 0; i < m; ++i){
+	  for(size_t j = 0; j < p; ++j){
+		  out->ptr[i*n+j] = 0;
+		  for(size_t k = 0; k < n; ++k){
+			  out->ptr[i*p+j] += a.ptr[i*n+k] * b.ptr[k*p+j];
+		  }
+	  }
+  }
   /// END SOLUTION
 }
+
 
 inline void AlignedDot(const float* __restrict__ a,
                        const float* __restrict__ b,
