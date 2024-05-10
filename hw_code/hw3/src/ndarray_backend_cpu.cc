@@ -422,7 +422,15 @@ inline void AlignedDot(const float* __restrict__ a,
   out = (float*)__builtin_assume_aligned(out, TILE * ELEM_SIZE);
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  for(size_t i = 0 ; i < TILE; ++i){
+  	  for(size_t j = 0; j < TILE; ++j){
+  		 for(size_t k=0; k < TILE; ++k){
+  			  out[i*TILE+j] += a[i*TILE+k] * b[k*TILE+j];
+  			  //std::cout<<"out:"<<out[i*TILE+j]<<std::endl;
+  		  }
+  	  }
+    }
+
   /// END SOLUTION
 }
 
@@ -448,7 +456,21 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    *
    */
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+	size_t M = m / TILE;
+	size_t N = n / TILE;
+	size_t P = p / TILE;
+	// a : M x N tiles, b: N x P tiles, out: M x P tiles, each tile has TILE*TILE elemnts
+	for (size_t I = 0 ; I < M; ++I){
+		for (size_t J = 0; J < P; ++J){
+			scalar_t *out_ptr = out->ptr + (I*P+J)*TILE*TILE; // OUT[I,J] I*P+J tiles
+			memset((void*)out_ptr, 0, TILE*TILE * sizeof(scalar_t));
+			for(size_t K = 0; K < N; ++K){
+				scalar_t *a_ptr = a.ptr + (I*N+K)*TILE*TILE; // A[I,K] I*N+K tiles
+				scalar_t *b_ptr = b.ptr + (K*P+J)*TILE*TILE; // B[K,J] K*P+J tiles
+				AlignedDot(a_ptr, b_ptr, out_ptr);
+			}
+		}
+	}
   /// END SOLUTION
 }
 
