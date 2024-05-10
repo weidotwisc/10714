@@ -35,6 +35,7 @@ python3 -m pytest -v -k "compact and cpu"
 python3 -m pytest -v -k "setitem and cpu"
 python3 -m pytest -v -k "(ewise_fn or ewise_max or log or exp or tanh or (scalar and not setitem)) and cpu"
 python3 -m pytest -v -k "reduce and cpu"
+python3 -m pytest -s -v -k "matmul and cpu"
 ```
 
 
