@@ -103,7 +103,7 @@ void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
  * Test EwiseAdd
 */
 void test1(){
-  size_t sz = 100
+  size_t sz = 100;
   CudaArray a(sz);
   Fill(a, 1);
   CudaArray b(sz);
