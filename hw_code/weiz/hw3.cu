@@ -89,7 +89,7 @@ __global__ void EwiseAddKernel(const scalar_t* a, const scalar_t* b, scalar_t* o
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if (gid < size) {
     out[gid] = a[gid] + b[gid];
-    printf("out[%d]: %f ", gid, out[gid]);
+    //printf("out[%d]: %f ", gid, out[gid]);
   }
 }
 
@@ -101,6 +101,21 @@ void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
   EwiseAddKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size);
 }
 
+template <typename F>
+__global__ void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, F f){
+	assert(a.size == b.size);
+	assert(a.size == out->size);
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (gid < size) {
+    out[gid] = f(a[gid], b[gid])
+  }
+}
+scalar_t _mul(scalar_t a, scalar_t b){
+	return a*b;
+}
+void EwiseMul(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a, b, out, _mul);
+}
 /**
  * Test EwiseAdd
 */
@@ -121,7 +136,28 @@ void test1(){
   std::cout<<std::endl;
 }
 
+/**
+ * Test EwiseMul
+*/
+void test2(){
+  size_t sz = 100;
+  CudaArray a(sz);
+  Fill(&a, 1);
+  CudaArray b(sz);
+  Fill(&b,2);
+  CudaArray c(sz);
+  Fill(&c,0);
+  EwiseMul(a, b, &c);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  copyToHost(host_ptr, c.ptr, sz);
+  for(size_t i = 0; i < sz; ++i){
+    std::cout<<host_ptr[i]<<" ";
+  }
+  std::cout<<std::endl;
+}
+
 int main(int argc, char **argv){
-  test1();
+  //test1();
+  test2();
   return 0;
 }
