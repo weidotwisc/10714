@@ -107,7 +107,7 @@ __device__ scalar_t _mul(scalar_t a, scalar_t b){
 	return a*b;
 }
 template <typename F>
-__global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, F f){
+__global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, __device__ F f){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   //printf("gid %d ", gid);
   if (gid < size) {
@@ -168,6 +168,35 @@ void test2(){
     std::cout<<host_ptr[i]<<" ";
   }
   std::cout<<std::endl;*/
+}
+
+void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
+            uint32_t P) {
+  /**
+   * Multiply two (compact) matrices into an output (also comapct) matrix.  You will want to look
+   * at the lecture and notes on GPU-based linear algebra to see how to do this.  Since ultimately
+   * mugrade is just evaluating correctness, you _can_ implement a version that simply parallelizes
+   * over (i,j) entries in the output array.  However, to really get the full benefit of this
+   * problem, we would encourage you to use cooperative fetching, shared memory register tiling, 
+   * and other ideas covered in the class notes.  Note that unlike the tiled matmul function in
+   * the CPU backend, here you should implement a single function that works across all size
+   * matrices, whether or not they are a multiple of a tile size.  As with previous CUDA
+   * implementations, this function here will largely just set up the kernel call, and you should
+   * implement the logic in a separate MatmulKernel() call.
+   * 
+   *
+   * Args:
+   *   a: compact 2D array of size m x n
+   *   b: comapct 2D array of size n x p
+   *   out: compact 2D array of size m x p to write the output to
+   *   M: rows of a / out
+   *   N: columns of a / rows of b
+   *   P: columns of b / out
+   */
+
+  /// BEGIN SOLUTION
+  assert(false && "Not Implemented");
+  /// END SOLUTION
 }
 
 int main(int argc, char **argv){
