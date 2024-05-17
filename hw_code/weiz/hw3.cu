@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <vector>
 #include <iostream>
+#include <assert.h>
 #define BASE_THREAD_NUM 256
 
 #define TILE 4
