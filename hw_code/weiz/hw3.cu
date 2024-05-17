@@ -102,14 +102,21 @@ void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 }
 
 template <typename F>
-__global__ void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, F f){
-	assert(a.size == b.size);
-	assert(a.size == out->size);
+__global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, F f){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if (gid < size) {
     out[gid] = f(a[gid], b[gid])
   }
 }
+
+template <typename F>
+void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, F f){
+  assert(a.size == b.size);
+	assert(a.size == out->size);
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseFuncKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, f);
+}
+
 scalar_t _mul(scalar_t a, scalar_t b){
 	return a*b;
 }
