@@ -106,20 +106,20 @@ void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 __device__ scalar_t _mul(scalar_t a, scalar_t b){
 	return a*b;
 }
-template <typename F>
+//template <typename F>
 __global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, int ftype){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   //printf("gid %d ", gid);
   if (gid < size) {
     //printf("gid %d", gid);
-    if(ftyp == 0)
-      out[gid] = _mult(a[gid], b[gid]);
+    if(ftype == 0)
+      out[gid] = _mul(a[gid], b[gid]);
     //out[gid] = a[gid]*b[gid];
     //printf("out[%d]: %f ", gid, out[gid]);
   }
 }
 
-template <typename F>
+//template <typename F>
 void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, int ftype){
   assert(a.size == b.size);
 	assert(a.size == out->size);
