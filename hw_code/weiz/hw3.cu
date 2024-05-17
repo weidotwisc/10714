@@ -102,30 +102,31 @@ void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
   EwiseAddKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size);
 }
 
+
+__device__ scalar_t _mul(scalar_t a, scalar_t b){
+	return a*b;
+}
 template <typename F>
 __global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, F f){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   //printf("gid %d ", gid);
-  if(gid == 0 || 1){
-    printf("size %d \n", size);
-  }
   if (gid < size) {
+    //printf("gid %d", gid);
     out[gid] = f(a[gid], b[gid]);
+    //out[gid] = a[gid]*b[gid];
     printf("out[%d]: %f ", gid, out[gid]);
   }
 }
 
 template <typename F>
-void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, F f){
+__host__ void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, F f){
   assert(a.size == b.size);
 	assert(a.size == out->size);
   CudaDims dim = CudaOneDim(out->size);
   EwiseFuncKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, f);
 }
 
-scalar_t _mul(scalar_t a, scalar_t b){
-	return a*b;
-}
+
 void EwiseMul(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 	EwiseFunc(a, b, out, _mul);
 }
@@ -153,7 +154,7 @@ void test1(){
  * Test EwiseMul
 */
 void test2(){
-  size_t sz = 100;
+  size_t sz = 10;
   CudaArray a(sz);
   Fill(&a, 1);
   CudaArray b(sz);
