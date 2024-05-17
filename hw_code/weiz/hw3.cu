@@ -106,7 +106,7 @@ template <typename F>
 __global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, F f){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   //printf("gid %d ", gid);
-  if(gid == 0){
+  if(gid == 0 || 1){
     printf("size %d \n", size);
   }
   if (gid < size) {
