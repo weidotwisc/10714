@@ -1,0 +1,124 @@
+#include <cuda_runtime.h>
+#include <device_functions.h>
+#include <vector>
+#define BASE_THREAD_NUM 256
+
+#define TILE 4
+typedef float scalar_t;
+const size_t ELEM_SIZE = sizeof(scalar_t);
+#define cudacall(call)                                                         \
+  do {                                                                         \
+    cudaError_t err = (call);                                                  \
+    if (cudaSuccess != err) {                                                  \
+      fprintf(stderr, "CUDA Error:\nFile = %s\nLine = %d\nReason = %s\n",      \
+              __FILE__, __LINE__, cudaGetErrorString(err));                    \
+      cudaDeviceReset();                                                       \
+      exit(EXIT_FAILURE);                                                      \
+    }                                                                          \
+  } while (0)
+
+#define cublascall(call)                                                       \
+  do {                                                                         \
+    cublasStatus_t err = (call);                                               \
+    if (CUBLAS_STATUS_SUCCESS != err) {                                        \
+      fprintf(stderr, "CUBLAS Error:\nFile = %s\nLine = %d\nReason = %d\n",    \
+              __FILE__, __LINE__, err);                                        \
+      cudaDeviceReset();                                                       \
+      exit(EXIT_FAILURE);                                                      \
+    }                                                                          \
+  } while (0)
+struct CudaArray {
+  CudaArray(const size_t size) {
+    cudaError_t err = cudaMalloc(&ptr, size * ELEM_SIZE);
+    if (err != cudaSuccess) throw std::runtime_error(cudaGetErrorString(err));
+    this->size = size;
+  }
+  ~CudaArray() { cudaFree(ptr); }
+  size_t ptr_as_int() { return (size_t)ptr; }
+
+  scalar_t* ptr;
+  size_t size;
+};
+
+struct CudaDims {
+  dim3 block, grid;
+};
+
+CudaDims CudaOneDim(size_t size) {
+  /**
+   * Utility function to get cuda dimensions for 1D call
+   */
+  CudaDims dim;
+  size_t num_blocks = (size + BASE_THREAD_NUM - 1) / BASE_THREAD_NUM;
+  dim.block = dim3(BASE_THREAD_NUM, 1, 1);
+  dim.grid = dim3(num_blocks, 1, 1);
+  return dim;
+}
+
+#define MAX_VEC_SIZE 8
+struct CudaVec {
+  uint32_t size;
+  int32_t data[MAX_VEC_SIZE];
+};
+
+CudaVec VecToCuda(const std::vector<int32_t>& x) {
+  CudaVec shape;
+  if (x.size() > MAX_VEC_SIZE) throw std::runtime_error("Exceeded CUDA supported max dimesions");
+  shape.size = x.size();
+  for (size_t i = 0; i < x.size(); i++) {
+    shape.data[i] = x[i];
+  }
+  return shape;
+}
+
+__global__ void FillKernel(scalar_t* out, scalar_t val, size_t size) {
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (gid < size) out[gid] = val;
+}
+
+void Fill(CudaArray* out, scalar_t val) {
+  CudaDims dim = CudaOneDim(out->size);
+  FillKernel<<<dim.grid, dim.block>>>(out->ptr, val, out->size);
+}
+
+void copyToHost(scalar_t *host_ptr, scalar_t *device_ptr, size_t n){
+  cudacall(cudaMemcpy(host_ptr, device_ptr, n, cudaMemcpyDeviceToHost));
+}
+
+__global__ void EwiseAddKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size) {
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (gid < size) out[gid] = a[gid] + b[gid];
+}
+
+void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+  /**
+   * Add together two CUDA array
+   */
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseAddKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size);
+}
+
+/**
+ * Test EwiseAdd
+*/
+void test1(){
+  size_t sz = 100
+  CudaArray *a = new CudaArray(sz);
+  Fill(a, 1);
+  CudaArray *b = new CudaArray(sz);
+  Fill(b,2);
+  CudaArray *c = new CudaArray(sz);
+  Fill(c,0);
+  EwiseAdd(*a, *b, c);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  copyToHost(host_ptr, c->ptr, sz);
+  for(size_t i = 0; i < sz; ++i){
+    std::count<<host_ptr[i]<<" "
+  }
+  std::cout<<std::endl;
+}
+
+int main(int argc, char **argv){
+  test1();
+  return 0;
+}
