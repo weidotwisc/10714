@@ -107,6 +107,7 @@ __global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* 
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if (gid < size) {
     out[gid] = f(a[gid], b[gid]);
+    printf("out[%d]: %f ", gid, out[gid]);
   }
 }
 
