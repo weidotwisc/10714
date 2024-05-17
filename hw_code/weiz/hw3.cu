@@ -105,11 +105,11 @@ void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 void test1(){
   size_t sz = 100;
   CudaArray a(sz);
-  Fill(a, 1);
+  Fill(&a, 1);
   CudaArray b(sz);
-  Fill(b,2);
+  Fill(&b,2);
   CudaArray c(sz);
-  Fill(c,0);
+  Fill(&c,0);
   EwiseAdd(a, b, &c);
   scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
   copyToHost(host_ptr, c.ptr, sz);
