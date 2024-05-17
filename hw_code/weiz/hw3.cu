@@ -157,12 +157,12 @@ void test2(){
   CudaArray c(sz);
   Fill(&c,0);
   EwiseMul(a, b, &c);
-  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  /*scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
   copyToHost(host_ptr, c.ptr, sz);
   for(size_t i = 0; i < sz; ++i){
     std::cout<<host_ptr[i]<<" ";
   }
-  std::cout<<std::endl;
+  std::cout<<std::endl;*/
 }
 
 int main(int argc, char **argv){
