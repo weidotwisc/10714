@@ -105,7 +105,10 @@ void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 template <typename F>
 __global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, F f){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-  printf("gid %d ", gid);
+  //printf("gid %d ", gid);
+  if(gid == 0){
+    printf("size %d \n", size);
+  }
   if (gid < size) {
     out[gid] = f(a[gid], b[gid]);
     printf("out[%d]: %f ", gid, out[gid]);
