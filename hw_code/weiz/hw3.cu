@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <device_functions.h>
 #include <vector>
+#include <iostream>
 #define BASE_THREAD_NUM 256
 
 #define TILE 4
