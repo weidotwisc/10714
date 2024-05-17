@@ -107,28 +107,33 @@ __device__ scalar_t _mul(scalar_t a, scalar_t b){
 	return a*b;
 }
 template <typename F>
-__global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, __device__ F f){
+__global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size, int ftype){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   //printf("gid %d ", gid);
   if (gid < size) {
     //printf("gid %d", gid);
-    out[gid] = f(a[gid], b[gid]);
+    if(ftyp == 0)
+      out[gid] = _mult(a[gid], b[gid]);
     //out[gid] = a[gid]*b[gid];
-    printf("out[%d]: %f ", gid, out[gid]);
+    //printf("out[%d]: %f ", gid, out[gid]);
   }
 }
 
 template <typename F>
-__host__ void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, F f){
+void EwiseFunc(const CudaArray& a, const CudaArray& b, CudaArray* out, int ftype){
   assert(a.size == b.size);
 	assert(a.size == out->size);
   CudaDims dim = CudaOneDim(out->size);
-  EwiseFuncKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, f);
+  EwiseFuncKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, ftype);
 }
 
-
+/* 
+template < typename T,0> twoOperandsFuncWrapper(T input1, T input2) {
+  EwiseFunc<T>(intput1, _mul)
+}
+*/
 void EwiseMul(const CudaArray& a, const CudaArray& b, CudaArray* out) {
-	EwiseFunc(a, b, out, _mul);
+	EwiseFunc(a, b, out, 0);
 }
 /**
  * Test EwiseAdd
@@ -162,12 +167,12 @@ void test2(){
   CudaArray c(sz);
   Fill(&c,0);
   EwiseMul(a, b, &c);
-  /*scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
   copyToHost(host_ptr, c.ptr, sz);
   for(size_t i = 0; i < sz; ++i){
     std::cout<<host_ptr[i]<<" ";
   }
-  std::cout<<std::endl;*/
+  std::cout<<std::endl;
 }
 
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
