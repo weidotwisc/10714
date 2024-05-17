@@ -1,5 +1,4 @@
 #include <cuda_runtime.h>
-#include <device_functions.h>
 #include <vector>
 #include <iostream>
 #define BASE_THREAD_NUM 256
@@ -83,12 +82,15 @@ void Fill(CudaArray* out, scalar_t val) {
 }
 
 void copyToHost(scalar_t *host_ptr, scalar_t *device_ptr, size_t n){
-  cudacall(cudaMemcpy(host_ptr, device_ptr, n, cudaMemcpyDeviceToHost));
+  cudacall(cudaMemcpy(host_ptr, device_ptr, n*sizeof(scalar_t), cudaMemcpyDeviceToHost));
 }
 
 __global__ void EwiseAddKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size) {
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (gid < size) out[gid] = a[gid] + b[gid];
+  if (gid < size) {
+    out[gid] = a[gid] + b[gid];
+    printf("out[%d]: %f ", gid, out[gid]);
+  }
 }
 
 void EwiseAdd(const CudaArray& a, const CudaArray& b, CudaArray* out) {
