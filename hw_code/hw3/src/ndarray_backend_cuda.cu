@@ -221,6 +221,160 @@ void ScalarAdd(const CudaArray& a, scalar_t val, CudaArray* out) {
 ////////////////////////////////////////////////////////////////////////////////
 // Elementwise and scalar operations
 ////////////////////////////////////////////////////////////////////////////////
+enum BinaryOp{
+  MUL,
+  DIV,
+  POW,
+  MAX,
+  EQ,
+  GE
+};
+
+__device__ scalar_t _mul(scalar_t a, scalar_t b){
+	return a*b;
+}
+__device__ scalar_t _div(scalar_t a, scalar_t b){
+	return a/b;
+}
+__device__ scalar_t _power(scalar_t a, scalar_t b){
+	return std::pow(a,b);
+}
+__device__ scalar_t _max(scalar_t a, scalar_t b){
+  return max(a,b); // it is a pity that std::pow() in c++11 is not constexpr
+}
+__device__ scalar_t _eq(scalar_t a, scalar_t b){
+	return a==b;
+}
+__device__ scalar_t _ge(scalar_t a, scalar_t b){
+	return a>=b;
+}
+typedef scalar_t (*binary_func) (scalar_t, scalar_t);
+__device__ binary_func bfunc[6]={_mul, _div,_power, _max, _eq, _ge};
+
+enum UnaryOp{
+  LOG,
+  EXP,
+  TANH
+};
+
+__device__ scalar_t _log(scalar_t a){
+  return std::log(a);
+}
+__device__ scalar_t _exp(scalar_t a){
+	return std::exp(a);
+}
+__device__ scalar_t _tanh(scalar_t a){
+	return std::tanh(a);
+}
+typedef scalar_t (*unary_func) (scalar_t);
+__device__ unary_func ufunc[3]={_log, _exp, _tanh};
+
+//template <typename F>
+__global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, const scalar_t b_val, scalar_t* out, size_t size, int ftype){
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  //printf("gid %d ", gid);
+  if (gid < size) {
+    if(b!=NULL){
+      out[gid] = bfunc[ftype](a[gid], b[gid]);
+    }else{
+      out[gid] = bfunc[ftype](a[gid], b_val);
+    }
+  }
+}
+
+
+//template <typename F>
+void EwiseFunc(const scalar_t *a_ptr, const scalar_t *b_ptr, const scalar_t b_val, CudaArray* out, BinaryOp ftype){
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseFuncKernel<<<dim.grid, dim.block>>>(a_ptr, b_ptr, b_val, out->ptr, out->size, ftype);
+}
+
+
+
+__global__ void SingleEwiseFuncKernel(const scalar_t* a, scalar_t* out, size_t size, UnaryOp ftype){
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  //printf("gid %d ", gid);
+  if (gid < size) {
+    out[gid] = ufunc[ftype](a[gid]);
+  }
+}
+
+// for log exp and tanh
+void SingleEwiseFunc(scalar_t* a_ptr, CudaArray* out, UnaryOp ftype){
+  CudaDims dim = CudaOneDim(out->size);
+  SingleEwiseFuncKernel<<<dim.grid, dim.block>>>(a_ptr,out->ptr, out->size, ftype);
+}
+
+/* 
+template < typename T,0> twoOperandsFuncWrapper(T input1, T input2) {
+  EwiseFunc<T>(intput1, _mul)
+}
+*/
+
+void EwiseMul(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr, 0, out, MUL);
+}
+void ScalarMul(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, MUL);
+}
+
+
+void EwiseDiv(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr, 0, out, DIV);
+}
+
+void ScalarDiv(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, DIV);
+}
+
+
+void ScalarPower(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, POW);
+}
+
+void EwiseMaximum(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr, 0, out, MAX);
+}
+
+void ScalarMaximum(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val,out, MAX);
+}
+
+
+void EwiseEq(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr, 0, out, EQ);
+}
+
+void ScalarEq(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, EQ);
+}
+
+
+void EwiseGe(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr,0, out, GE);
+}
+
+void ScalarGe(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, GE);
+}
+
+
+void EwiseLog(const CudaArray& a,CudaArray* out){
+	SingleEwiseFunc(a.ptr, out, LOG);
+}
+
+
+
+void EwiseExp(const CudaArray& a,CudaArray* out){
+	SingleEwiseFunc(a.ptr, out, EXP);
+}
+
+
+
+void EwiseTanh(const CudaArray& a,CudaArray* out){
+	SingleEwiseFunc(a.ptr, out, TANH);
+}
+
 
 
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
@@ -337,22 +491,22 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("ewise_add", EwiseAdd);
   m.def("scalar_add", ScalarAdd);
 
-  // m.def("ewise_mul", EwiseMul);
-  // m.def("scalar_mul", ScalarMul);
-  // m.def("ewise_div", EwiseDiv);
-  // m.def("scalar_div", ScalarDiv);
-  // m.def("scalar_power", ScalarPower);
+  m.def("ewise_mul", EwiseMul);
+  m.def("scalar_mul", ScalarMul);
+  m.def("ewise_div", EwiseDiv);
+  m.def("scalar_div", ScalarDiv);
+  m.def("scalar_power", ScalarPower);
 
-  // m.def("ewise_maximum", EwiseMaximum);
-  // m.def("scalar_maximum", ScalarMaximum);
-  // m.def("ewise_eq", EwiseEq);
-  // m.def("scalar_eq", ScalarEq);
-  // m.def("ewise_ge", EwiseGe);
-  // m.def("scalar_ge", ScalarGe);
+  m.def("ewise_maximum", EwiseMaximum);
+  m.def("scalar_maximum", ScalarMaximum);
+  m.def("ewise_eq", EwiseEq);
+  m.def("scalar_eq", ScalarEq);
+  m.def("ewise_ge", EwiseGe);
+  m.def("scalar_ge", ScalarGe);
 
-  // m.def("ewise_log", EwiseLog);
-  // m.def("ewise_exp", EwiseExp);
-  // m.def("ewise_tanh", EwiseTanh);
+  m.def("ewise_log", EwiseLog);
+  m.def("ewise_exp", EwiseExp);
+  m.def("ewise_tanh", EwiseTanh);
 
   // m.def("matmul", Matmul);
 
