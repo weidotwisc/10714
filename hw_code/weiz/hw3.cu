@@ -122,7 +122,7 @@ __device__ scalar_t _power(scalar_t a, scalar_t b){
 	return std::pow(a,b);
 }
 __device__ scalar_t _max(scalar_t a, scalar_t b){
-	return std::max(a,b);
+  return max(a,b); // it is a pity that std::pow() in c++11 is not constexpr
 }
 __device__ scalar_t _eq(scalar_t a, scalar_t b){
 	return a==b;
@@ -228,7 +228,7 @@ void EwiseEq(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 }
 
 void ScalarEq(const CudaArray& a, scalar_t val, CudaArray* out) {
-	ScalarFunc(a.ptr, NULL, val, out, EQ);
+	EwiseFunc(a.ptr, NULL, val, out, EQ);
 }
 
 
