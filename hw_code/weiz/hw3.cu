@@ -154,23 +154,18 @@ void EwiseFunc(const scalar_t *a_ptr, const scalar_t *b_ptr, const scalar_t b_va
 
 
 
-__global__ void SingleEwiseFuncKernel(const scalar_t* a, scalar_t* out, size_t size, int ftype){
+__global__ void SingleEwiseFuncKernel(const scalar_t* a, scalar_t* out, size_t size, UnaryOp ftype){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   //printf("gid %d ", gid);
   if (gid < size) {
-    if(b!=NULL){
-      out[gid] = bfunc[ftype](a[gid], b[gid]);
-    }else{
-      out[gid] = bfunc[ftype](a[gid], b_val);
-    }
+    out[gid] = ufunc[ftype](a[gid]);
   }
 }
 
 // for log exp and tanh
-void SingleEwiseFunc(const CudaArray& a, CudaArray* out, UnaryOp ftype){
-	assert(a.size == out->size);
+void SingleEwiseFunc(scalar_t* a_ptr, CudaArray* out, UnaryOp ftype){
   CudaDims dim = CudaOneDim(out->size);
-  SingleEwiseFuncKernel<<<dim.grid, dim.block>>>(a_ptr, b_ptr, b_val, out->ptr, out->size, ftype);
+  SingleEwiseFuncKernel<<<dim.grid, dim.block>>>(a_ptr,out->ptr, out->size, ftype);
 }
 
 /* 
@@ -235,7 +230,7 @@ void test3(){
   
   CudaArray c(sz);
   Fill(&c,0);
-  ScalarMul(a, 2, &c);
+  ScalarMul(a, 2.5, &c);
   scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
   copyToHost(host_ptr, c.ptr, sz);
   for(size_t i = 0; i < sz; ++i){
