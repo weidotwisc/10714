@@ -112,25 +112,44 @@ enum BinaryOp{
   GE
 };
 
+__device__ scalar_t _mul(scalar_t a, scalar_t b){
+	return a*b;
+}
+__device__ scalar_t _div(scalar_t a, scalar_t b){
+	return a/b;
+}
+__device__ scalar_t _power(scalar_t a, scalar_t b){
+	return std::pow(a,b);
+}
+__device__ scalar_t _max(scalar_t a, scalar_t b){
+	return std::max(a,b);
+}
+__device__ scalar_t _eq(scalar_t a, scalar_t b){
+	return a==b;
+}
+__device__ scalar_t _ge(scalar_t a, scalar_t b){
+	return a>=b;
+}
+typedef scalar_t (*binary_func) (scalar_t, scalar_t);
+__device__ binary_func bfunc[6]={_mul, _div,_power, _max, _eq, _ge};
+
 enum UnaryOp{
   LOG,
   EXP,
   TANH
 };
 
-__device__ scalar_t _mul(scalar_t a, scalar_t b){
-	return a*b;
-}
-
-
-typedef scalar_t (*binary_func) (scalar_t, scalar_t);
-__device__ binary_func bfunc[1]={_mul};
-
 __device__ scalar_t _log(scalar_t a){
   return std::log(a);
 }
+__device__ scalar_t _exp(scalar_t a){
+	return std::exp(a);
+}
+__device__ scalar_t _tanh(scalar_t a){
+	return std::tanh(a);
+}
 typedef scalar_t (*unary_func) (scalar_t);
-__device__ unary_func ufunc[1]={_log};
+__device__ unary_func ufunc[3]={_log, _exp, _tanh};
 
 //template <typename F>
 __global__ void EwiseFuncKernel(const scalar_t* a, const scalar_t* b, const scalar_t b_val, scalar_t* out, size_t size, int ftype){
@@ -180,6 +199,64 @@ void EwiseMul(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 void ScalarMul(const CudaArray& a, scalar_t val, CudaArray* out) {
 	EwiseFunc(a.ptr, NULL, val, out, MUL);
 }
+
+
+void EwiseDiv(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr, 0, out, DIV);
+}
+
+void ScalarDiv(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, DIV);
+}
+
+
+void ScalarPower(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, POW);
+}
+
+void EwiseMaximum(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr, 0, out, MAX);
+}
+
+void ScalarMaximum(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val,out, MAX);
+}
+
+
+void EwiseEq(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr, 0, out, EQ);
+}
+
+void ScalarEq(const CudaArray& a, scalar_t val, CudaArray* out) {
+	ScalarFunc(a.ptr, NULL, val, out, EQ);
+}
+
+
+void EwiseGe(const CudaArray& a, const CudaArray& b, CudaArray* out) {
+	EwiseFunc(a.ptr, b.ptr,0, out, GE);
+}
+
+void ScalarGe(const CudaArray& a, scalar_t val, CudaArray* out) {
+	EwiseFunc(a.ptr, NULL, val, out, GE);
+}
+
+
+void EwiseLog(const CudaArray& a,CudaArray* out){
+	SingleEwiseFunc(a.ptr, out, LOG);
+}
+
+
+
+void EwiseExp(const CudaArray& a,CudaArray* out){
+	SingleEwiseFunc(a.ptr, out, EXP);
+}
+
+
+
+void EwiseTanh(const CudaArray& a,CudaArray* out){
+	SingleEwiseFunc(a.ptr, out, TANH);
+}
+
 /**
  * Test EwiseAdd
 */
@@ -239,6 +316,25 @@ void test3(){
   std::cout<<std::endl;
 }
 
+/**
+ * Test Tanh
+*/
+void test4(){
+  size_t sz = 10;
+  CudaArray a(sz);
+  Fill(&a, 1);
+  
+  CudaArray c(sz);
+  Fill(&c,0);
+  EwiseTanh(a, &c);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  copyToHost(host_ptr, c.ptr, sz);
+  for(size_t i = 0; i < sz; ++i){
+    std::cout<<host_ptr[i]<<" ";
+  }
+  std::cout<<std::endl;
+}
+
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
             uint32_t P) {
   /**
@@ -271,6 +367,7 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
 int main(int argc, char **argv){
   //test1();
   //test2();
-  test3();
+  //test3();
+  test4();
   return 0;
 }
