@@ -317,6 +317,82 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
   /// END SOLUTION
 }
 
+
+
+scalar_t _sum(scalar_t a, scalar_t b){
+  return a+b;
+}
+enum ReduceOP{
+  REDUCE_MAX, 
+  REDUCE_SUM
+};
+
+__device__ binary_func reduce_func[2]={_max,_sum};
+
+__global__ void ReduceTemplateFuncKernel(const scalar_t *view, scalar_t *out, size_t out_size, size_t reduce_size, ReduceOP reduce_op, scalar_t reduce_id){
+  // TODO!!!
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if(gid < out_size){
+    scalar_t _reduce_result = reduce_id;
+    for(size_t i=0; i < reduce_size; ++i){
+      size_t offset = gid*reduce_size+i;
+      _reduce_result = reduce_func[reduce_op](_reduce_result, view[offset]); // note offset will never go over bound, as we did gid check already
+    }
+    out[gid] = _reduce_result;
+  }
+}
+  
+
+
+
+void ReduceTemplateFunc(const CudaArray& a, CudaArray* out, size_t reduce_size, ReduceOP reduce_op, scalar_t reduce_id){
+	assert(a.size == out->size * reduce_size);
+  CudaDims dim = CudaOneDim(out->size);
+  ReduceTemplateFuncKernerl<<<dim.grid, dim.block>>>(a.ptr,out->ptr, out->size, reduce_size, reduce_op, reduce_id);
+	
+}
+
+
+
+
+
+
+
+
+
+
+void ReduceMax(const CudaArray& a, CudaArray* out, size_t reduce_size) {
+  /**
+   * Reduce by taking maximum over `reduce_size` contiguous blocks.  Even though it is inefficient,
+   * for simplicity you can perform each reduction in a single CUDA thread.
+   * 
+   * Args:
+   *   a: compact array of size a.size = out.size * reduce_size to reduce over
+   *   out: compact array to write into
+   *   redice_size: size of the dimension to reduce over
+   */
+  /// BEGIN SOLUTION
+  ReduceTemplateFunc(a, out, reduce_size, REDUCE_MAX, std::numeric_limits<scalar_t>::lowest());
+  /// END SOLUTION
+}
+
+
+
+void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
+  /**
+   * Reduce by taking summation over `reduce_size` contiguous blocks.  Again, for simplicity you 
+   * can perform each reduction in a single CUDA thread.
+   * 
+   * Args:
+   *   a: compact array of size a.size = out.size * reduce_size to reduce over
+   *   out: compact array to write into
+   *   redice_size: size of the dimension to reduce over
+   */
+  /// BEGIN SOLUTION
+  ReduceTemplateFunc(a, out, reduce_size, REDUCE_SUM, 0);
+  /// END SOLUTION
+}
+
 /**
  * Test EwiseAdd
 */
@@ -438,12 +514,32 @@ void test6(){
  
 }
 
+/**
+ * Test reduce sum
+*/
+void test7(){
+  size_t sz = 64;
+  CudaArray view(sz);
+  Fill(&view, 1);
+  size_t out_size = 8;
+  CudaArray out(out_size);
+  ReduceSum(view, *out, sz/out_size);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*out_size);
+  copyToHost(host_ptr, out.ptr, out_size);
+  size_t idx=0;
+  for(size_t i = 0; i < out_size; ++i){
+    std::cout<<host_ptr[i]<<" ";
+  }
+  std::cout<<std::endl;
+}
+
 int main(int argc, char **argv){
   //test1();
   //test2();
   //test3();
   //test4();
-  test5();
+  //test5();
   //test6();
+  test7();
   return 0;
 }
