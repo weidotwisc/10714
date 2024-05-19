@@ -2,8 +2,9 @@
 #include <vector>
 #include <iostream>
 #include <assert.h>
+#include <cmath>
 #define BASE_THREAD_NUM 256
-
+#define BASE_THREAD_NUM_2D 16 
 #define TILE 4
 typedef float scalar_t;
 const size_t ELEM_SIZE = sizeof(scalar_t);
@@ -53,6 +54,15 @@ CudaDims CudaOneDim(size_t size) {
   size_t num_blocks = (size + BASE_THREAD_NUM - 1) / BASE_THREAD_NUM;
   dim.block = dim3(BASE_THREAD_NUM, 1, 1);
   dim.grid = dim3(num_blocks, 1, 1);
+  return dim;
+}
+
+CudaDims CudaTwoDim(size_t size){
+  CudaDims dim;
+  size_t num_blocks = (size + BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D - 1) / (BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D);
+  dim.block = dim3(BASE_THREAD_NUM_2D, BASE_THREAD_NUM_2D, 1);
+  size_t num_blocks_2D = ceil(sqrt(num_blocks));
+  dim.grid = dim3(num_blocks_2D, num_blocks_2D, 1);
   return dim;
 }
 
@@ -258,6 +268,55 @@ void EwiseTanh(const CudaArray& a,CudaArray* out){
 }
 
 /**
+ * output is M x P
+*/
+__global__ void MatMulKernel(const scalar_t* a_ptr, const scalar_t* b_ptr, scalar_t* out, 
+uint32_t M, uint32_t N, uint32_t P){
+  size_t row = blockIdx.y * blockDim.y + threadIdx.y;
+  size_t col = blockIdx.x * blockDim.x  + threadIdx.x;
+  if (row < M && col < P){
+    size_t flatten_idx = row * P + col;
+    out[flatten_idx] = 0;
+    for(size_t k = 0; k < N; ++k){
+      scalar_t tmp = a_ptr[row*N+k]* b_ptr[k*P+col];
+      out[flatten_idx]+= tmp;
+    }
+  }
+
+}
+
+void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
+            uint32_t P) {
+  /**
+   * Multiply two (compact) matrices into an output (also comapct) matrix.  You will want to look
+   * at the lecture and notes on GPU-based linear algebra to see how to do this.  Since ultimately
+   * mugrade is just evaluating correctness, you _can_ implement a version that simply parallelizes
+   * over (i,j) entries in the output array.  However, to really get the full benefit of this
+   * problem, we would encourage you to use cooperative fetching, shared memory register tiling, 
+   * and other ideas covered in the class notes.  Note that unlike the tiled matmul function in
+   * the CPU backend, here you should implement a single function that works across all size
+   * matrices, whether or not they are a multiple of a tile size.  As with previous CUDA
+   * implementations, this function here will largely just set up the kernel call, and you should
+   * implement the logic in a separate MatmulKernel() call.
+   * 
+   *
+   * Args:
+   *   a: compact 2D array of size m x n
+   *   b: comapct 2D array of size n x p
+   *   out: compact 2D array of size m x p to write the output to
+   *   M: rows of a / out
+   *   N: columns of a / rows of b
+   *   P: columns of b / out
+   */
+
+  /// BEGIN SOLUTION
+  CudaDims dim = CudaTwoDim(M*P);
+  MatMulKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, M, N, P);
+  //assert(false && "Not Implemented");
+  /// END SOLUTION
+}
+
+/**
  * Test EwiseAdd
 */
 void test1(){
@@ -335,39 +394,33 @@ void test4(){
   std::cout<<std::endl;
 }
 
-void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
-            uint32_t P) {
-  /**
-   * Multiply two (compact) matrices into an output (also comapct) matrix.  You will want to look
-   * at the lecture and notes on GPU-based linear algebra to see how to do this.  Since ultimately
-   * mugrade is just evaluating correctness, you _can_ implement a version that simply parallelizes
-   * over (i,j) entries in the output array.  However, to really get the full benefit of this
-   * problem, we would encourage you to use cooperative fetching, shared memory register tiling, 
-   * and other ideas covered in the class notes.  Note that unlike the tiled matmul function in
-   * the CPU backend, here you should implement a single function that works across all size
-   * matrices, whether or not they are a multiple of a tile size.  As with previous CUDA
-   * implementations, this function here will largely just set up the kernel call, and you should
-   * implement the logic in a separate MatmulKernel() call.
-   * 
-   *
-   * Args:
-   *   a: compact 2D array of size m x n
-   *   b: comapct 2D array of size n x p
-   *   out: compact 2D array of size m x p to write the output to
-   *   M: rows of a / out
-   *   N: columns of a / rows of b
-   *   P: columns of b / out
-   */
+void test5(){
+  size_t sz = 256;
+  CudaArray a(sz);
+  Fill(&a, 1);
+  CudaArray b(sz);
+  Fill(&b, 1);
+  CudaArray c(sz);
+  Fill(&c,0);
+  Matmul(a,b,&c, 16,16,16);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  copyToHost(host_ptr, c.ptr, sz);
+  size_t idx=0;
+  for(size_t i = 0; i < 16; ++i){
+    for(size_t j=0; j < 16; ++j){
+      std::cout<<host_ptr[idx++]<<" ";
+    }
+    std::cout<<std::endl;
+  }
+  std::cout<<std::endl;
 
-  /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
-  /// END SOLUTION
 }
 
 int main(int argc, char **argv){
   //test1();
   //test2();
   //test3();
-  test4();
+  //test4();
+  test5();
   return 0;
 }
