@@ -375,12 +375,12 @@ void EwiseTanh(const CudaArray& a,CudaArray* out){
 	SingleEwiseFunc(a.ptr, out, TANH);
 }
 
-CudaDims CudaTwoDim(size_t size){
+CudaDims CudaTwoDim(size_t X, size_t Y){
   CudaDims dim;
-  size_t num_blocks = (size + BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D - 1) / (BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D);
+  size_t num_blocks_along_x = ceil((float)X / (float)BASE_THREAD_NUM_2D);
+  size_t num_blocks_along_y = ceil((float)Y / (float)BASE_THREAD_NUM_2D);
   dim.block = dim3(BASE_THREAD_NUM_2D, BASE_THREAD_NUM_2D, 1);
-  size_t num_blocks_2D = ceil(sqrt(num_blocks));
-  dim.grid = dim3(num_blocks_2D, num_blocks_2D, 1);
+  dim.grid = dim3(num_blocks_along_x, num_blocks_along_y, 1);
   return dim;
 }
 
@@ -427,7 +427,7 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
    */
 
   /// BEGIN SOLUTION
-  CudaDims dim = CudaTwoDim(M*P);
+  CudaDims dim = CudaTwoDim(P, M); // note P is X, M is Y
   MatMulKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, M, N, P);
   //assert(false && "Not Implemented");
   /// END SOLUTION
@@ -537,7 +537,7 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("ewise_exp", EwiseExp);
   m.def("ewise_tanh", EwiseTanh);
 
-  // m.def("matmul", Matmul);
+  m.def("matmul", Matmul);
 
   // m.def("reduce_max", ReduceMax);
   // m.def("reduce_sum", ReduceSum);

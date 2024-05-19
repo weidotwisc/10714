@@ -57,12 +57,13 @@ CudaDims CudaOneDim(size_t size) {
   return dim;
 }
 
-CudaDims CudaTwoDim(size_t size){
+CudaDims CudaTwoDim(size_t X, size_t Y){
   CudaDims dim;
-  size_t num_blocks = (size + BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D - 1) / (BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D);
+  size_t num_blocks_along_x = ceil((float) X / (float) BASE_THREAD_NUM_2D);
+  size_t num_blocks_along_y = ceil((float) Y / (float) BASE_THREAD_NUM_2D);
   dim.block = dim3(BASE_THREAD_NUM_2D, BASE_THREAD_NUM_2D, 1);
-  size_t num_blocks_2D = ceil(sqrt(num_blocks));
-  dim.grid = dim3(num_blocks_2D, num_blocks_2D, 1);
+  dim.grid = dim3(num_blocks_along_x, num_blocks_along_y, 1);
+  std::cout<<"num_blocks_along_x: "<<num_blocks_along_x<<" num_blocks_along_y: "<<num_blocks_along_y<<std::endl;
   return dim;
 }
 
@@ -310,7 +311,7 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
    */
 
   /// BEGIN SOLUTION
-  CudaDims dim = CudaTwoDim(M*P);
+  CudaDims dim = CudaTwoDim(P, M);
   MatMulKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, M, N, P);
   //assert(false && "Not Implemented");
   /// END SOLUTION
@@ -395,19 +396,19 @@ void test4(){
 }
 
 void test5(){
-  size_t sz = 256;
+  size_t sz = 64;
   CudaArray a(sz);
   Fill(&a, 1);
   CudaArray b(sz);
   Fill(&b, 1);
   CudaArray c(sz);
   Fill(&c,0);
-  Matmul(a,b,&c, 16,16,16);
+  Matmul(a,b,&c, 8,8,8);
   scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
   copyToHost(host_ptr, c.ptr, sz);
   size_t idx=0;
-  for(size_t i = 0; i < 16; ++i){
-    for(size_t j=0; j < 16; ++j){
+  for(size_t i = 0; i < 8; ++i){
+    for(size_t j=0; j < 8; ++j){
       std::cout<<host_ptr[idx++]<<" ";
     }
     std::cout<<std::endl;
@@ -416,11 +417,33 @@ void test5(){
 
 }
 
+void test6(){
+  size_t sz = 64*64;
+  CudaArray a(sz);
+  Fill(&a, 1);
+  CudaArray b(sz);
+  Fill(&b, 1);
+  CudaArray c(sz);
+  Fill(&c,0);
+  Matmul(a,b,&c, 64,64,64);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  copyToHost(host_ptr, c.ptr, sz);
+  size_t idx=0;
+  for(size_t i = 0; i < 64; ++i){
+    for(size_t j=0; j < 64; ++j){
+      std::cout<<host_ptr[idx++]<<" ";
+    }
+    std::cout<<std::endl;
+  }
+ 
+}
+
 int main(int argc, char **argv){
   //test1();
   //test2();
   //test3();
   //test4();
   test5();
+  //test6();
   return 0;
 }
