@@ -5,12 +5,12 @@
 
 #include <iostream>
 #include <sstream>
-
+#include<cmath>
 namespace needle {
 namespace cuda {
 
 #define BASE_THREAD_NUM 256
-
+#define BASE_THREAD_NUM_2D 16 
 #define TILE 4
 typedef float scalar_t;
 const size_t ELEM_SIZE = sizeof(scalar_t);
@@ -375,7 +375,32 @@ void EwiseTanh(const CudaArray& a,CudaArray* out){
 	SingleEwiseFunc(a.ptr, out, TANH);
 }
 
+CudaDims CudaTwoDim(size_t size){
+  CudaDims dim;
+  size_t num_blocks = (size + BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D - 1) / (BASE_THREAD_NUM_2D*BASE_THREAD_NUM_2D);
+  dim.block = dim3(BASE_THREAD_NUM_2D, BASE_THREAD_NUM_2D, 1);
+  size_t num_blocks_2D = ceil(sqrt(num_blocks));
+  dim.grid = dim3(num_blocks_2D, num_blocks_2D, 1);
+  return dim;
+}
 
+/**
+ * output is M x P
+*/
+__global__ void MatMulKernel(const scalar_t* a_ptr, const scalar_t* b_ptr, scalar_t* out, 
+uint32_t M, uint32_t N, uint32_t P){
+  size_t row = blockIdx.y * blockDim.y + threadIdx.y;
+  size_t col = blockIdx.x * blockDim.x  + threadIdx.x;
+  if (row < M && col < P){
+    size_t flatten_idx = row * P + col;
+    out[flatten_idx] = 0;
+    for(size_t k = 0; k < N; ++k){
+      scalar_t tmp = a_ptr[row*N+k]* b_ptr[k*P+col];
+      out[flatten_idx]+= tmp;
+    }
+  }
+
+}
 
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
             uint32_t P) {
@@ -402,9 +427,13 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
    */
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  CudaDims dim = CudaTwoDim(M*P);
+  MatMulKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, M, N, P);
+  //assert(false && "Not Implemented");
   /// END SOLUTION
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Max and sum reductions
