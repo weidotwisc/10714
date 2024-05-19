@@ -3,6 +3,7 @@
 #include <iostream>
 #include <assert.h>
 #include <cmath>
+#include <limits>
 #define BASE_THREAD_NUM 256
 #define BASE_THREAD_NUM_2D 16 
 #define TILE 4
@@ -319,14 +320,15 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
 
 
 
-scalar_t _sum(scalar_t a, scalar_t b){
-  return a+b;
-}
+
 enum ReduceOP{
   REDUCE_MAX, 
   REDUCE_SUM
 };
 
+__device__ scalar_t _sum(scalar_t a, scalar_t b){
+  return a+b;
+}
 __device__ binary_func reduce_func[2]={_max,_sum};
 
 __global__ void ReduceTemplateFuncKernel(const scalar_t *view, scalar_t *out, size_t out_size, size_t reduce_size, ReduceOP reduce_op, scalar_t reduce_id){
@@ -342,24 +344,11 @@ __global__ void ReduceTemplateFuncKernel(const scalar_t *view, scalar_t *out, si
   }
 }
   
-
-
-
 void ReduceTemplateFunc(const CudaArray& a, CudaArray* out, size_t reduce_size, ReduceOP reduce_op, scalar_t reduce_id){
 	assert(a.size == out->size * reduce_size);
   CudaDims dim = CudaOneDim(out->size);
-  ReduceTemplateFuncKernerl<<<dim.grid, dim.block>>>(a.ptr,out->ptr, out->size, reduce_size, reduce_op, reduce_id);
-	
+  ReduceTemplateFuncKernel<<<dim.grid, dim.block>>>(a.ptr,out->ptr, out->size, reduce_size, reduce_op, reduce_id);	
 }
-
-
-
-
-
-
-
-
-
 
 void ReduceMax(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   /**
@@ -375,8 +364,6 @@ void ReduceMax(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   ReduceTemplateFunc(a, out, reduce_size, REDUCE_MAX, std::numeric_limits<scalar_t>::lowest());
   /// END SOLUTION
 }
-
-
 
 void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   /**
@@ -523,7 +510,7 @@ void test7(){
   Fill(&view, 1);
   size_t out_size = 8;
   CudaArray out(out_size);
-  ReduceSum(view, *out, sz/out_size);
+  ReduceSum(view, &out, sz/out_size);
   scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*out_size);
   copyToHost(host_ptr, out.ptr, out_size);
   size_t idx=0;

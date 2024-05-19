@@ -5,7 +5,8 @@
 
 #include <iostream>
 #include <sstream>
-#include<cmath>
+#include <cmath>
+#include <limits>
 namespace needle {
 namespace cuda {
 
@@ -438,8 +439,35 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
 ////////////////////////////////////////////////////////////////////////////////
 // Max and sum reductions
 ////////////////////////////////////////////////////////////////////////////////
+enum ReduceOP{
+  REDUCE_MAX, 
+  REDUCE_SUM
+};
 
+__device__ scalar_t _sum(scalar_t a, scalar_t b){
+  return a+b;
+}
+__device__ binary_func reduce_func[2]={_max,_sum};
 
+__global__ void ReduceTemplateFuncKernel(const scalar_t *view, scalar_t *out, size_t out_size, size_t reduce_size, ReduceOP reduce_op, scalar_t reduce_id){
+  // TODO!!!
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if(gid < out_size){
+    scalar_t _reduce_result = reduce_id;
+    for(size_t i=0; i < reduce_size; ++i){
+      size_t offset = gid*reduce_size+i;
+      _reduce_result = reduce_func[reduce_op](_reduce_result, view[offset]); // note offset will never go over bound, as we did gid check already
+    }
+    out[gid] = _reduce_result;
+  }
+}
+  
+void ReduceTemplateFunc(const CudaArray& a, CudaArray* out, size_t reduce_size, ReduceOP reduce_op, scalar_t reduce_id){
+	assert(a.size == out->size * reduce_size);
+  CudaDims dim = CudaOneDim(out->size);
+  ReduceTemplateFuncKernel<<<dim.grid, dim.block>>>(a.ptr,out->ptr, out->size, reduce_size, reduce_op, reduce_id);	
+}
+  
 void ReduceMax(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   /**
    * Reduce by taking maximum over `reduce_size` contiguous blocks.  Even though it is inefficient,
@@ -451,11 +479,9 @@ void ReduceMax(const CudaArray& a, CudaArray* out, size_t reduce_size) {
    *   redice_size: size of the dimension to reduce over
    */
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  ReduceTemplateFunc(a, out, reduce_size, REDUCE_MAX, std::numeric_limits<scalar_t>::lowest());
   /// END SOLUTION
 }
-
-
 
 void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   /**
@@ -468,9 +494,10 @@ void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
    *   redice_size: size of the dimension to reduce over
    */
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  ReduceTemplateFunc(a, out, reduce_size, REDUCE_SUM, 0);
   /// END SOLUTION
 }
+
 
 }  // namespace cuda
 }  // namespace needle
@@ -539,6 +566,6 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
 
   m.def("matmul", Matmul);
 
-  // m.def("reduce_max", ReduceMax);
-  // m.def("reduce_sum", ReduceSum);
+  m.def("reduce_max", ReduceMax);
+  m.def("reduce_sum", ReduceSum);
 }
