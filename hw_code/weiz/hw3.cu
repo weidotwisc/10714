@@ -502,13 +502,32 @@ void test6(){
 }
 
 /**
- * Test reduce sum
+ * Test reduce sum, square view
 */
 void test7(){
   size_t sz = 64;
   CudaArray view(sz);
   Fill(&view, 1);
   size_t out_size = 8;
+  CudaArray out(out_size);
+  ReduceSum(view, &out, sz/out_size);
+  scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*out_size);
+  copyToHost(host_ptr, out.ptr, out_size);
+  size_t idx=0;
+  for(size_t i = 0; i < out_size; ++i){
+    std::cout<<host_ptr[i]<<" ";
+  }
+  std::cout<<std::endl;
+}
+
+/**
+ * Test reduce sum, rectangular view
+*/
+void test8(){
+  size_t sz = 64;
+  CudaArray view(sz);
+  Fill(&view, 1);
+  size_t out_size = 4;
   CudaArray out(out_size);
   ReduceSum(view, &out, sz/out_size);
   scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*out_size);
@@ -527,6 +546,7 @@ int main(int argc, char **argv){
   //test4();
   //test5();
   //test6();
-  test7();
+  //test7();
+  test8();
   return 0;
 }
