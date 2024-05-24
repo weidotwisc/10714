@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <vector>
 #include <limits>
+#include <string.h>
 /*#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -914,11 +915,13 @@ void test14(){
 
 int main(int argc, char **argv){
 	//std::cout<<"Hello world"<<std::endl;
-	//test1();
+	test1();
+	std::cout<<"-----"<<std::endl;
 	//test2();
-	//test3();
+	test3();
+	std::cout<<"-----"<<std::endl;
 	//test4();
-	//test5();
+	test5();
 	//test6();
 	//test7();
 	//test8();
@@ -927,6 +930,6 @@ int main(int argc, char **argv){
 	//test11();
 	//test12();
 	//test13();
-	test14();
+	//test14();
 	return 0;
 }
