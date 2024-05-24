@@ -37,7 +37,9 @@ python3 -m pytest -v -k "(ewise_fn or ewise_max or log or exp or tanh or (scalar
 python3 -m pytest -v -k "reduce and cpu"
 python3 -m pytest -s -v -k "matmul and cpu"
 python3 -m pytest -v -k "matmul and cpu or matmul_tiled" # see https://github.com/dlsyscourse/hw3/issues/7
+python3 -m pytest -v -k "(compact or setitem) and cuda"
 python3 -m pytest -v -k "(ewise_fn or ewise_max or log or exp or tanh or (scalar and not setitem)) and cuda"
+python3 -m pytest -v -k "reduce and cuda"
 python3 -m pytest -v -k "matmul and cuda"
 ```
 
