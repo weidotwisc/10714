@@ -68,21 +68,7 @@ CudaDims CudaTwoDim(size_t X, size_t Y){
   return dim;
 }
 
-#define MAX_VEC_SIZE 8
-struct CudaVec {
-  uint32_t size;
-  int32_t data[MAX_VEC_SIZE];
-};
 
-CudaVec VecToCuda(const std::vector<int32_t>& x) {
-  CudaVec shape;
-  if (x.size() > MAX_VEC_SIZE) throw std::runtime_error("Exceeded CUDA supported max dimesions");
-  shape.size = x.size();
-  for (size_t i = 0; i < x.size(); i++) {
-    shape.data[i] = x[i];
-  }
-  return shape;
-}
 
 __global__ void FillKernel(scalar_t* out, scalar_t val, size_t size) {
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -92,6 +78,17 @@ __global__ void FillKernel(scalar_t* out, scalar_t val, size_t size) {
 void Fill(CudaArray* out, scalar_t val) {
   CudaDims dim = CudaOneDim(out->size);
   FillKernel<<<dim.grid, dim.block>>>(out->ptr, val, out->size);
+}
+
+__global__ void FillArangeKernel(scalar_t *out, size_t world_size){
+  size_t rank = blockIdx.x * blockDim.x + threadIdx.x;
+  if(rank < world_size){
+    out[rank] = rank;
+  }
+}
+void FillArange(CudaArray *out){
+  CudaDims dim = CudaOneDim(out->size);
+  FillArangeKernel<<<dim.grid, dim.block>>>(out->ptr, out->size);
 }
 
 void copyToHost(scalar_t *host_ptr, scalar_t *device_ptr, size_t n){
@@ -380,6 +377,292 @@ void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   /// END SOLUTION
 }
 
+
+#define MAX_VEC_SIZE 8
+struct CudaVec {
+  uint32_t size;
+  int32_t data[MAX_VEC_SIZE];
+};
+
+CudaVec VecToCuda(const std::vector<int32_t>& x) {
+  CudaVec shape;
+  if (x.size() > MAX_VEC_SIZE) throw std::runtime_error("Exceeded CUDA supported max dimesions");
+  shape.size = x.size();
+  for (size_t i = 0; i < x.size(); i++) {
+    shape.data[i] = x[i];
+  }
+  return shape;
+}
+
+
+
+/**
+ * return strides for compact tensor, given tensor's shape
+ */
+__device__ CudaVec get_compact_strides(CudaVec shape){
+  uint32_t dim = shape.size;
+  CudaVec compact_strides;
+  for(size_t i = 0; i < MAX_VEC_SIZE;++i){
+    compact_strides.data[i]=0;
+  }
+  size_t stride_at_dim = 1;
+  compact_strides[dim-1] = stride_at_dim;
+  for(int i = dim-2; i >= 0; --i){
+    stride_at_dim *= shape.data[i+1];
+    compact_strides.data[i] = stride_at_dim;
+  }
+  return compact_strides;
+ /*
+	size_t dim = shape.size();
+	std::vector<int> compact_strides(dim, 0);
+	compact_strides[dim-1] = 1; // dst_strides highest dimension is always 1, as it is always compact
+	size_t stride_at_dim = 1;
+	for(int i = dim-2; i >=0 ; --i){ // get strides for output tensor (always compact), had two bugs here:(1) use int i to avoid
+		// underflow, (ii) use my own formula to calculate strides
+		stride_at_dim *= shape[i+1];
+		compact_strides[i] = stride_at_dim;
+	}
+	return compact_strides;*/
+}
+
+__device__ void fill_tensor_at(scalar_t *dst, const scalar_t *src, CudaVec dst_strides, CudaVec src_strides,
+CudaVec shape, size_t gid, scalar_t val=0){
+  CudaVec repr;
+  repr.size = 0;
+  int rank = gid;
+  int divisor = 1;
+
+  // step 1 get the repr vector
+  for(size_t i = 1; i < shape.size; ++i){
+    divisor *= shape.data[i];
+  }
+  while(rank >=0){
+    int quotient = rank / divisor;
+    rank = rank % divisor;
+    assert(repr.size < MAX_VEC_SIZE);
+    repr.data[repr.size++] = quotient;
+    divisor = divisor / shape.data[repr.size];
+  }
+  // step 2 get the corresponding index of src and dst and then assign src to dst
+  size_t dst_idx = 0;
+  for(size_t i = 0; i < repr.size; ++i){
+      dst_idx += repr.data[i] * dst_strides.data[i];
+  }
+  if(src != NULL){
+    size_t src_idx = 0;
+    for(size_t i = 0; i < repr.size; ++i){
+      src_idx += repr.data[i] * src_strides.data[i];
+    }
+    dst[dst_idx] = src[src_idx];
+  }else{
+    dst[dst_idx] = val;
+  }
+  
+
+}
+
+__global__ void CompactKernel(const scalar_t* a, scalar_t* out, size_t size, CudaVec shape,
+                              CudaVec strides, size_t offset) {
+  /**
+   * The CUDA kernel for the compact opeation.  This should effectively map a single entry in the 
+   * non-compact input a, to the corresponding item (at location gid) in the compact array out.
+   * 
+   * Args:
+   *   a: CUDA pointer to a array, non-compact
+   *   out: CUDA point to out array, compact
+   *   size: size of out array
+   *   shape: vector of shapes of a and out arrays (of type CudaVec, for past passing to CUDA kernel)
+   *   strides: vector of strides of *a* array
+   *   offset: offset of *a* array
+   */
+  /// BEGIN SOLUTION
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if(gid < size){
+    scalar_t *dst = out; // compact
+    CudaVec dst_strides = get_compact_strides(shape);
+    scalar_t *src = a + offset; // non-compact
+    CudaVec src_strides = strides;
+    fill_tensor_at(dst, src, dst_strides, src_strides, shape, gid);
+  }
+  
+
+  //assert(false && "Not Implemented");
+  /// END SOLUTION
+}
+
+void Compact(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape,
+             std::vector<int32_t> strides, size_t offset) {
+  /**
+   * Compact an array in memory.  Unlike the C++ version, in CUDA this will primarily call the 
+   * relevant CUDA kernel.  In this case, we illustrate how you should set this up (i.e., we give 
+   * you the code for this fuction, and also the prototype for the CompactKernel() function).  For
+   * the functions after this, however, you'll need to define these kernels as you see fit to 
+   * execute the underlying function.
+   * 
+   * Args:
+   *   a: non-compact represntation of the array, given as input
+   *   out: compact version of the array to be written
+   *   shape: shapes of each dimension for a and out
+   *   strides: strides of the *a* array (not out, which has compact strides)
+   *   offset: offset of the *a* array (not out, which has zero offset, being compact)
+   */
+
+  // Nothing needs to be added here
+  CudaDims dim = CudaOneDim(out->size);
+  size_t real_size = 1;
+    for(size_t i = 0; i < shape.size;++i){
+      real_size *= shape[i];
+    }
+  assert(real_size == size);
+  CompactKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, VecToCuda(shape),
+                                         VecToCuda(strides), offset);
+}
+
+
+__global__ void EwiseSetitemKernel(const scalar_t *a, scalar_t *out, size_t size, CudaVec shape, CudaVec strides,
+ size_t offset){
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x
+  if(gid < size){
+    scalar_t *dst = out+offset;
+    CudaVec dst_strides = strides;
+    scalar_t *src = a;
+    CudaVec src_strides = get_compact_strides(shape);
+    fill_tensor_at(dst, src, dst_strides, src_strides, shape, gid);
+  }
+}
+void EwiseSetitem(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape,
+                  std::vector<int32_t> strides, size_t offset) {
+  /**
+   * Set items in a (non-compact) array using CUDA.  Yyou will most likely want to implement a
+   * EwiseSetitemKernel() function, similar to those above, that will do the actual work.
+   * 
+   * Args:
+   *   a: _compact_ array whose items will be written to out
+   *   out: non-compact array whose items are to be written
+   *   shape: shapes of each dimension for a and out
+   *   strides: strides of the *out* array (not a, which has compact strides)
+   *   offset: offset of the *out* array (not a, which has zero offset, being compact)
+   */
+  /// BEGIN SOLUTION
+  size_t sz = 1;
+  for(std::vector<int32_t>::iterator it = shape.begin(); it != shape.end(); ++it){
+    sz *= (*it);
+  }
+  assert(a.size == sz);
+  CudaDims dim = CudaOneDim(a.size);
+  CompactKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, sz, VecToCuda(shape),
+                                         VecToCuda(strides), offset);
+  /// END SOLUTION
+}
+
+
+__global__ void ScalarSetitemKernel(size_t size, scalar_t val, scalar_t *out, CudaVec shape, CudaVec strides, size_t offset){
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if(gid < size){
+    scalar_t dst = out+offset;
+    CudaVec dst_strides = strides;
+    scalar_t *src = NULL;
+    CudaVec src_strides = get_compact_strides(shape);
+    fill_tensor_at(dst, src, dst_strides, src_strides, shape, gid, val);
+  }
+}
+
+void ScalarSetitem(size_t size, scalar_t val, CudaArray* out, std::vector<int32_t> shape,
+                   std::vector<int32_t> strides, size_t offset) {
+  /**
+   * Set items is a (non-compact) array
+   * 
+   * Args:
+   *   size: number of elements to write in out array (note that this will note be the same as
+   *         out.size, because out is a non-compact subset array);  it _will_ be the same as the 
+   *         product of items in shape, but covenient to just pass it here.
+   *   val: scalar value to write to
+   *   out: non-compact array whose items are to be written
+   *   shape: shapes of each dimension of out
+   *   strides: strides of the out array
+   *   offset: offset of the out array
+   */
+  /// BEGIN SOLUTION
+  size_t sz = 1;
+  for(std::vector<int32_t>::iterator it = shape.begin(); it != shape.end(); ++it){
+    sz *= (*it);
+  }
+  assert(size == sz);
+  CudaDims dim = CudaOneDim(size);
+  CompactKernel<<<dim.grid, dim.block>>>(size, val, out->ptr, VecToCuda(shape),
+                                         VecToCuda(strides), offset);
+  /// END SOLUTION
+}
+
+// test Compact()
+void test11(){
+  std::cout<<"test11()"<<std::endl;
+  std::cout<<test11()<<std::endl;
+	// step1 prepare a
+	size_t sz = 6;
+	CudaArray a(sz);
+	FillArange(a);
+	std::vector<int32_t> strides = {3,1}; // now a is 2x3: [0,1,2]
+	                                      //               [3,4,5]
+	
+	// step2 prepare b
+	CudaArra b(2);
+	std::vector<int32_t> shape = {2,1}; //  b is [0,
+	                                          //  3]
+  Compact(a, &b, shape, strides, 0);
+	scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*2);
+  copyToHost(host_ptr, b.ptr, 2);
+  for(size_t i = 0; i < 2; ++i){
+    std::cout<<host_ptr[i]<<" "; // b is supposed to be [0,3]
+  }
+  std::cout<<std::endl;
+}
+
+// test EwiseSetitem
+void test13(){
+  std::cout<<"test13()"<<std::endl;
+// step1 prepare a
+	size_t sz = 6;
+	CudaArray a(sz);
+	Fill(&a, -1);
+
+	std::vector<int32_t> strides = {3,1}; // now a is 2x3
+	//std::cout<<strides.size()<<std::endl;
+	// step2 prepare b
+	CudaArray b(2);
+	std::vector<int32_t> shape = {2,1}; // now
+	FillArange(&b);
+
+	EwiseSetitem(b, &a, shape, strides, 0);
+	scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*2);
+  copyToHost(host_ptr, b.ptr, 2);
+  for(size_t i = 0; i < 2; ++i){
+    std::cout<<host_ptr[i]<<" "; // b is supposed to be [0,3]
+  }
+  std::cout<<std::endl;
+}
+
+void test15(){
+  std::cout<<"test15()"<<std::endl;
+	// step1 prepare a
+	size_t sz = 6;
+  CudaArray a(sz);
+	Fill(&a, -1);
+	std::vector<int32_t> strides = {3,1}; // now a is 2x3
+	//std::cout<<strides.size()<<std::endl;
+	// step2 prepare b
+	CudaArray b(2);
+	std::vector<int32_t> shape = {2,1}; // now
+	FillArange(&b);
+	ScalarSetitem(2, 100, &a, shape, strides, 0);
+
+	size_t idx=0;
+	for (size_t i = 0; i < 6; ++i){
+		std::cout<<a.ptr[idx++]<<std::endl; // a is supposed to be [100,-1,-1,100,-1,-1]
+	}
+
+
+
 /**
  * Test EwiseAdd
 */
@@ -547,6 +830,9 @@ int main(int argc, char **argv){
   //test5();
   //test6();
   //test7();
-  test8();
+  //test8();
+  test11();
+  test13();
+  test15();
   return 0;
 }
