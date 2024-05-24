@@ -406,7 +406,7 @@ __device__ CudaVec get_compact_strides(CudaVec shape){
     compact_strides.data[i]=0;
   }
   size_t stride_at_dim = 1;
-  compact_strides[dim-1] = stride_at_dim;
+  compact_strides.data[dim-1] = stride_at_dim;
   for(int i = dim-2; i >= 0; --i){
     stride_at_dim *= shape.data[i+1];
     compact_strides.data[i] = stride_at_dim;
@@ -436,7 +436,8 @@ CudaVec shape, size_t gid, scalar_t val=0){
   for(size_t i = 1; i < shape.size; ++i){
     divisor *= shape.data[i];
   }
-  while(rank >=0){
+  // populate repr so that repr and shape have the same size
+  while(repr.size < shape.size){
     int quotient = rank / divisor;
     rank = rank % divisor;
     assert(repr.size < MAX_VEC_SIZE);
@@ -480,7 +481,7 @@ __global__ void CompactKernel(const scalar_t* a, scalar_t* out, size_t size, Cud
   if(gid < size){
     scalar_t *dst = out; // compact
     CudaVec dst_strides = get_compact_strides(shape);
-    scalar_t *src = a + offset; // non-compact
+    const scalar_t *src = a + offset; // non-compact
     CudaVec src_strides = strides;
     fill_tensor_at(dst, src, dst_strides, src_strides, shape, gid);
   }
@@ -510,10 +511,10 @@ void Compact(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape,
   // Nothing needs to be added here
   CudaDims dim = CudaOneDim(out->size);
   size_t real_size = 1;
-    for(size_t i = 0; i < shape.size;++i){
+  for(size_t i = 0; i < shape.size();++i){
       real_size *= shape[i];
     }
-  assert(real_size == size);
+  assert(real_size == out->size);
   CompactKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, VecToCuda(shape),
                                          VecToCuda(strides), offset);
 }
@@ -521,11 +522,11 @@ void Compact(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape,
 
 __global__ void EwiseSetitemKernel(const scalar_t *a, scalar_t *out, size_t size, CudaVec shape, CudaVec strides,
  size_t offset){
-  size_t gid = blockIdx.x * blockDim.x + threadIdx.x
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if(gid < size){
     scalar_t *dst = out+offset;
     CudaVec dst_strides = strides;
-    scalar_t *src = a;
+    const scalar_t *src = a;
     CudaVec src_strides = get_compact_strides(shape);
     fill_tensor_at(dst, src, dst_strides, src_strides, shape, gid);
   }
@@ -550,7 +551,7 @@ void EwiseSetitem(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape
   }
   assert(a.size == sz);
   CudaDims dim = CudaOneDim(a.size);
-  CompactKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, sz, VecToCuda(shape),
+  EwiseSetitemKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, sz, VecToCuda(shape),
                                          VecToCuda(strides), offset);
   /// END SOLUTION
 }
@@ -559,9 +560,9 @@ void EwiseSetitem(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape
 __global__ void ScalarSetitemKernel(size_t size, scalar_t val, scalar_t *out, CudaVec shape, CudaVec strides, size_t offset){
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if(gid < size){
-    scalar_t dst = out+offset;
+    scalar_t *dst = out+offset;
     CudaVec dst_strides = strides;
-    scalar_t *src = NULL;
+    const scalar_t *src = NULL;
     CudaVec src_strides = get_compact_strides(shape);
     fill_tensor_at(dst, src, dst_strides, src_strides, shape, gid, val);
   }
@@ -589,24 +590,23 @@ void ScalarSetitem(size_t size, scalar_t val, CudaArray* out, std::vector<int32_
   }
   assert(size == sz);
   CudaDims dim = CudaOneDim(size);
-  CompactKernel<<<dim.grid, dim.block>>>(size, val, out->ptr, VecToCuda(shape),
-                                         VecToCuda(strides), offset);
+  ScalarSetitemKernel<<<dim.grid, dim.block>>>(size, val, out->ptr, VecToCuda(shape),VecToCuda(strides), offset);
   /// END SOLUTION
 }
 
 // test Compact()
 void test11(){
   std::cout<<"test11()"<<std::endl;
-  std::cout<<test11()<<std::endl;
+  
 	// step1 prepare a
 	size_t sz = 6;
 	CudaArray a(sz);
-	FillArange(a);
+	FillArange(&a);
 	std::vector<int32_t> strides = {3,1}; // now a is 2x3: [0,1,2]
 	                                      //               [3,4,5]
 	
 	// step2 prepare b
-	CudaArra b(2);
+	CudaArray b(2);
 	std::vector<int32_t> shape = {2,1}; //  b is [0,
 	                                          //  3]
   Compact(a, &b, shape, strides, 0);
@@ -621,27 +621,28 @@ void test11(){
 // test EwiseSetitem
 void test13(){
   std::cout<<"test13()"<<std::endl;
-// step1 prepare a
+// step1 prepare out
 	size_t sz = 6;
-	CudaArray a(sz);
-	Fill(&a, -1);
+	CudaArray out(sz);
+	Fill(&out, -1);
 
 	std::vector<int32_t> strides = {3,1}; // now a is 2x3
 	//std::cout<<strides.size()<<std::endl;
-	// step2 prepare b
-	CudaArray b(2);
+	// step2 prepare a
+	CudaArray a(2);
 	std::vector<int32_t> shape = {2,1}; // now
-	FillArange(&b);
+	FillArange(&a);
 
-	EwiseSetitem(b, &a, shape, strides, 0);
-	scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*2);
-  copyToHost(host_ptr, b.ptr, 2);
-  for(size_t i = 0; i < 2; ++i){
+	EwiseSetitem(a, &out, shape, strides, 0);
+	scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+  copyToHost(host_ptr, out.ptr, sz);
+  for(size_t i = 0; i < sz; ++i){
     std::cout<<host_ptr[i]<<" "; // b is supposed to be [0,3]
   }
   std::cout<<std::endl;
 }
 
+// Test ScalarSetitem
 void test15(){
   std::cout<<"test15()"<<std::endl;
 	// step1 prepare a
@@ -651,17 +652,18 @@ void test15(){
 	std::vector<int32_t> strides = {3,1}; // now a is 2x3
 	//std::cout<<strides.size()<<std::endl;
 	// step2 prepare b
-	CudaArray b(2);
+	
 	std::vector<int32_t> shape = {2,1}; // now
-	FillArange(&b);
+	
 	ScalarSetitem(2, 100, &a, shape, strides, 0);
+	scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*sz);
+	copyToHost(host_ptr, a.ptr, sz);
 
-	size_t idx=0;
 	for (size_t i = 0; i < 6; ++i){
-		std::cout<<a.ptr[idx++]<<std::endl; // a is supposed to be [100,-1,-1,100,-1,-1]
+	  std::cout<<host_ptr[i]<<std::endl; // a is supposed to be [100,-1,-1,100,-1,-1]
 	}
 
-
+}
 
 /**
  * Test EwiseAdd
@@ -796,7 +798,6 @@ void test7(){
   ReduceSum(view, &out, sz/out_size);
   scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*out_size);
   copyToHost(host_ptr, out.ptr, out_size);
-  size_t idx=0;
   for(size_t i = 0; i < out_size; ++i){
     std::cout<<host_ptr[i]<<" ";
   }
@@ -815,7 +816,6 @@ void test8(){
   ReduceSum(view, &out, sz/out_size);
   scalar_t * host_ptr = (scalar_t *) malloc(sizeof(scalar_t)*out_size);
   copyToHost(host_ptr, out.ptr, out_size);
-  size_t idx=0;
   for(size_t i = 0; i < out_size; ++i){
     std::cout<<host_ptr[i]<<" ";
   }
