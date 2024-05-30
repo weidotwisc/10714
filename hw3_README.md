@@ -1,4 +1,7 @@
-# Section 1 Prep
+# workding directory
+```hw_code/hw3```
+
+# Section 1 Prep 
 ```bash
 git clone https://github.com/dlsys10714/hw3.git
 pip install cmake --upgrade # too old cmake will not work for cuda
@@ -9,7 +12,6 @@ set(Python_EXECUTABLE /mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python)
 ```
 Then do 
 ```bash
-cmake #(?? to test again on CCC)
 make
 ```
 
@@ -45,4 +47,11 @@ python3 -m pytest -v -k "matmul and cuda"
 
 
 # Section 3.2 Full Functionality Tests
+```
+source ../dlsys.profile
+./test_all.sh
+```
+
+# Update: 2024-05-29
+I have added [dlsys.profile](./hw_code/dlsys.profile) so that ```PYTHON_EXECUTABLE_PATH``` is defined for both ccc and f5 and then [CMakeLists.txt](./hw_code/hw3/CMakeLists.txt) can find the right python.
 
