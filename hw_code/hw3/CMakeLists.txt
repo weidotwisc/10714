@@ -3,7 +3,13 @@ project(needle C CXX)
 cmake_policy(SET CMP0146 OLD)
 
 # find correct version of Python
-set(Python_EXECUTABLE /mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python) # weiz 2024-03-18 specify the python that I want
+#set(Python_EXECUTABLE /mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python) # weiz 2024-03-18 specify the python that I want
+#set(Python_EXECUTABLE /dccstor/weiz/.pyenv/versions/wisdom_test/bin/python) # weiz 2024-05-29 specify the python that I want
+if(DEFINED ENV{PYTHON_EXECUTABLE_PATH})
+    set(Python_EXECUTABLE $ENV{PYTHON_EXECUTABLE_PATH})
+else()
+    message(FATAL_ERROR "Environment variable PYTHON_EXECUTABLE_PATH is not set")
+endif()
 execute_process(COMMAND python3-config --prefix
   OUTPUT_VARIABLE Python_ROOT_DIR)
 find_package(Python COMPONENTS Development Interpreter REQUIRED)
