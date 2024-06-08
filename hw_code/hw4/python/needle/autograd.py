@@ -188,7 +188,7 @@ class TensorTuple(Value):
 
     def detach(self):
         """Create a new tensor that shares the data but detaches from the graph."""
-        return TensorTuple.make_const(self.realize_cached_data())
+        return Tuple.make_const(self.realize_cached_data())
 
 
 class Tensor(Value):
@@ -216,7 +216,7 @@ class Tensor(Value):
                     array.numpy(), device=device, dtype=dtype
                 )
         else:
-            device = device if device else default_device()
+            device = device if device else cpu()
             cached_data = Tensor._array_from_numpy(array, device=device, dtype=dtype)
 
         self._init(
@@ -379,9 +379,21 @@ def compute_gradient_of_variables(output_tensor, out_grad):
 
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
+    for node in reverse_topo_order:
+        if node.requires_grad:
+            node.grad = sum_node_list(node_to_output_grads_list[node])
+            if node.op is None: # if true inputs node, no ops are defined
+                continue
+            partial_adjoints = node.op.gradient_as_tuple(node.grad, node) # weiz 2023-12-30, note, we need to use node.op not input_node.op, this is most IMPORTANT!!!
+            for input_node, input_node_partial_adjoint in zip(node.inputs, partial_adjoints):
+                if (input_node not in node_to_output_grads_list):
+                    node_to_output_grads_list[input_node] = [input_node_partial_adjoint]
+                else:
+                    node_to_output_grads_list[input_node].append(input_node_partial_adjoint)
+
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    #raise NotImplementedError()
     ### END YOUR SOLUTION
 
 
@@ -394,14 +406,26 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    #assert(list(node_list) == 1) # weiz 2023-12-30 there could be multiple root nodes in DAG
+    visited = set()
+    topo_order = [] # weiz 2023-12-30, really this is the dfs order
+    for node in node_list:
+        topo_sort_dfs(node, visited, topo_order)
+    return topo_order
     ### END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for n in node.inputs:
+        if(n not in visited): # technically, i don't need this if, as line 411 will guard it, at the cost of extra function calls
+            topo_sort_dfs(n, visited, topo_order)
+    if(node not in visited): # this branch is to avoid adding nodes multiple times, in DAG (richer than tree), there could be multiple paths that lead to the same node
+        visited.add(node)
+        topo_order.append(node)
+
+
     ### END YOUR SOLUTION
 
 
