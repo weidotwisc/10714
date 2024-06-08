@@ -5,7 +5,7 @@ from ..autograd import TensorTuple, TensorTupleOp
 
 from .ops_mathematic import *
 
-from ..backend_selection import array_api, BACKEND 
+import numpy as array_api
 
 class LogSoftmax(TensorOp):
     def compute(self, Z):
@@ -25,16 +25,38 @@ def logsoftmax(a):
 
 class LogSumExp(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
-        self.axes = axes
+        if (axes is not None):
+            if (type(axes) is not tuple):
+                assert (type(axes) is int)
+                self.axes = (axes,)  # make it like sum axes semantic in weiz needle (aka sum semantic in numpy) weiz 2023-01-23
+            else:
+                self.axes = axes
+        else:
+            self.axes = None
 
     def compute(self, Z):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.fwd_input_orig_shape = Z.shape
+        max_z = array_api.max(Z, axis=self.axes, keepdims=True) # keep the annihilated axes as dimension 1, that is long time what I want
+        z_minus_z_max = Z - max_z # because I keep the annihilated dimension as 1, so here max_z can be bcasted to Z properly
+        f = array_api.exp(z_minus_z_max)
+        sum_exp_z = array_api.sum(f, axis=self.axes, keepdims=True) # similar to max, keep the annihiated axes as dimension 1
+        assert(sum_exp_z.shape == max_z.shape)
+        self.grad_intermediate = f / sum_exp_z
+        assert(self.grad_intermediate.shape == self.fwd_input_orig_shape)
+        self.fwd_output_orig_shape = max_z.shape # bookeeping the fwd output right shape
+        lse = array_api.squeeze(array_api.log(sum_exp_z) + max_z) # in order to make the semantic correspond to keepdims=False, the result need a reduction of axes, but the actual number stay the same
+        return lse
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # step 1 reshape out_grad to original output shape
+        out_grad = out_grad.reshape(self.fwd_output_orig_shape)
+        # step 2 bcast out_grad to original input shape
+        out_grad = broadcast_to(out_grad, self.fwd_input_orig_shape)
+        # step 3 element-wise multiply out_grad with grad_intermediate
+        return  out_grad * self.grad_intermediate
         ### END YOUR SOLUTION
 
 
