@@ -1,4 +1,0 @@
-/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/build/CMakeFiles/ndarray_backend_cpu.dir
-/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/build/CMakeFiles/ndarray_backend_cuda.dir
-/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/build/CMakeFiles/edit_cache.dir
-/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/build/CMakeFiles/rebuild_cache.dir
