@@ -4,7 +4,7 @@ from functools import reduce
 import numpy as np
 from . import ndarray_backend_numpy
 from . import ndarray_backend_cpu
-
+import builtins # weiz 2024-04-17 in order to use the builtins.sum() function on list, sum has been redefined in this file
 
 # math.prod not in Python 3.7
 def prod(x):
@@ -247,7 +247,13 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if prod(new_shape) != prod(self._shape):
+            raise ValueError("Product of current shape is not equal to the product!")
+        if not self.is_compact():
+            raise ValueError("The matrix is not compact!")
+        #new_strides = NDArray.compact_strides(new_shape)
+        new_strides = tuple([prod(new_shape[i+1:]) for i in range(len(new_shape))]) # weiz 2024-03-19 my own way calculating strides
+        return NDArray.make(new_shape, strides=new_strides, device=self._device, handle=self._handle)
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):
@@ -272,7 +278,9 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        permuted_shape = tuple(self._shape[i] for i in new_axes)
+        permuted_strides = tuple(self._strides[i] for i in new_axes)
+        return NDArray.make(permuted_shape, strides=permuted_strides, device=self._device, handle=self._handle)
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
@@ -296,7 +304,16 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        assert(len(self._shape) == len (new_shape))
+        new_strides=list(self._strides)
+        for i in range(len(new_shape)):
+            if(self._shape[i] == 1):
+                if(new_shape[i] > 1):
+                    new_strides[i]=0
+            else:
+                assert(self._shape[i] == new_shape[i])
+        return NDArray.make(new_shape, strides=tuple(new_strides), device=self._device, handle=self._handle)
+
         ### END YOUR SOLUTION
 
     ### Get and set elements
@@ -363,7 +380,18 @@ class NDArray:
         assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_shape = []
+        new_strides = []
+        offset_lst = [idxs[idx].start * self._strides[idx] for idx in range(len(idxs))]
+        new_offset = 0
+        new_offset = builtins.sum(offset_lst)
+        # for offset in offset_lst:
+        #     new_offset += offset
+        for dim, sl in enumerate(idxs): # weiz 2023-04-17 note slice is for each dimension
+            new_shape.append(math.ceil( (sl.stop-sl.start)/sl.step ))
+            new_strides.append(self._strides[dim]*sl.step)
+
+        return NDArray.make(shape=tuple(new_shape), strides=tuple(new_strides), device=self._device, handle=self._handle, offset=new_offset) # weiz 204-04-15, back into studying this course
         ### END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
