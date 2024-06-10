@@ -184,8 +184,8 @@ def weiz_nn_mnist():
     for i in range(20):
         W1, W2 = nn_epoch(X, y, W1, W2, lr=0.2, batch=100)
 
-    print("training loss err: ", loss_err(ndl.relu(ndl.Tensor(X) @ W1) @ W2, y))
-    print("testing loss err: ", loss_err(ndl.relu(ndl.Tensor(X_te) @ W1) @ W2, y_te))
+    print("training loss, training err: ", loss_err(ndl.relu(ndl.Tensor(X) @ W1) @ W2, y))
+    print("testing loss, testing err: ", loss_err(ndl.relu(ndl.Tensor(X_te) @ W1) @ W2, y_te))
 
 # weiz 2024-01-06 explore gradient of gradient
 def weiz_explore_gradient_of_gradient():
