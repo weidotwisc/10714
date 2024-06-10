@@ -142,7 +142,8 @@ class DivScalar(TensorOp):
         ### BEGIN YOUR SOLUTION
         if(isinstance(self.scalar, int)): # weiz 2024-02-03, ugly hack to make the setter type check pass TODO!!
             self.scalar = a.dtype.type(self.scalar)
-        return array_api.divide(a, self.scalar)
+        # return array_api.divide(a, self.scalar) # weiz before 2024-06-09 was using this as numpy has divide() method,  but with CUDA and CPU backend there is no divide function
+        return  a / self.scalar
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -370,12 +371,12 @@ def relu(a):
 class Tanh(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return array_api.tanh(a)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return out_grad * (1 - (tanh(node.inputs[0])**2))
         ### END YOUR SOLUTION
 
 
