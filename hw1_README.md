@@ -25,6 +25,6 @@ python apps/simple_ml.py
 
 Results:
 ```
-training loss err:  (0.009224053184869952, 0.0009833333333333332)
-testing loss err:  (0.06452358790197966, 0.0196)
+training loss, training err:  (0.009224053184869952, 0.0009833333333333332)
+testing loss, training err:  (0.06452358790197966, 0.0196)
 ```
