@@ -100,7 +100,8 @@ class PowerScalar(TensorOp):
 
     def compute(self, a: NDArray) -> NDArray:
         ### BEGIN YOUR SOLUTION
-        return array_api.power(a, self.scalar)
+        return a**self.scalar # weiz 2024 __pow__ is available in NDArray.py
+        #return array_api.power(a, self.scalar)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -118,7 +119,8 @@ class EWiseDiv(TensorOp):
 
     def compute(self, a, b):
         ### BEGIN YOUR SOLUTION
-        return array_api.divide(a, b)
+        return a / b # weiz 2024-06-12  NDArray doesn't have divide
+        # return array_api.divide(a, b)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -277,7 +279,8 @@ def summation(a, axes=None):
 class MatMul(TensorOp):
     def compute(self, a, b):
         ### BEGIN YOUR SOLUTION
-        return array_api.matmul(a,b)
+        return a@b # weiz 2024-06-12  mamtmul not available in NDArray.py, but __matmul__ is
+        #return array_api.matmul(a,b)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -304,7 +307,8 @@ def matmul(a, b):
 class Negate(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        return array_api.negative(a)
+        return -a # weiz 2024-06-12, negative() is not in NDArray
+        #return array_api.negative(a)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -353,7 +357,10 @@ def exp(a):
 class ReLU(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        return array_api.maximum(0, a)
+        return array_api.maximum(a,0)
+        #return array_api.maximum(0, a) weiz 2024-06-12, note 
+        ## def maximum(a, b):
+        # return a.maximum(b), so we would have to write maximum(a,0), as a will be an object
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
