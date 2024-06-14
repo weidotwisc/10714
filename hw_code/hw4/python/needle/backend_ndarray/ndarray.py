@@ -278,6 +278,7 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
+        # weiz 2024-06-13, note even if new_axes contain negative numberes, that is fine too!
         permuted_shape = tuple(self._shape[i] for i in new_axes)
         permuted_strides = tuple(self._strides[i] for i in new_axes)
         return NDArray.make(permuted_shape, strides=permuted_strides, device=self._device, handle=self._handle)
@@ -661,3 +662,12 @@ def sum(a, axis=None, keepdims=False):
 
 def flip(a, axes):
     return a.flip(axes)
+
+# weiz 2024-06-13 add NDArray support of swapaxes, so that transpose ops is easier to implement for NDArray-backed tensors
+def swapaxes(a, axis0, axis1):
+    shape = a.shape
+    axes = list(tuple(range(len(shape))))
+    axes[axis0] = axis1
+    axes[axis1] = axis0
+    return a.permute(tuple(axes))
+                 

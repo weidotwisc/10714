@@ -163,11 +163,14 @@ def divide_scalar(a, scalar):
 class Transpose(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
         if(axes is None): # these two lines are added by weiz 2023-12-22
-            axes=[-2,-1]
+            axes=(-2,-1) # weiz 2024-06-13, make axes to be tuple instead of list
+            #axes=(0,1) # weiz 2024-06-13, make axes to be tuple instead of list
         self.axes = axes
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
+        # weiz 2024-06-13 I implemented swapaxes in NDArray to minimize code change here, otherwise, I would need to condition on backend as numpy has swapaxes() but no permute()
+        # whereas ndarray has permute but no swapaxes
         return array_api.swapaxes(a, self.axes[0], self.axes[1]) # weiz: 2023-12-22, this function is really about swap  axes
         ### END YOUR SOLUTION
 
