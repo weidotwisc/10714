@@ -244,10 +244,13 @@ class Summation(TensorOp):
                 self.axes = axes
         else:
             self.axes = None
+            #self.axes = tuple(range(len(self.)))
 
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
+        #if(self.axes is None):
+        #    self.axes = tuple(range(len(a.shape)))
         return array_api.sum(a, axis=self.axes)
         ### END YOUR SOLUTION
 

@@ -305,6 +305,14 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
+        #print(self._shape) # (1,)
+        #print("!!!")
+        #print(new_shape) # (1,1,1) weiz 2024-06-17
+        if(len(self._shape) < len(new_shape)): # weiz 2024-06-18 we allow a lower rank tensor to bcast to a higher rank tensor
+            num_ones_to_prepend = len(new_shape) - len(self._shape) # now we just prepend the shape with 1s and then reshape it to this expanded shape
+            expanded_shape = (1,)* num_ones_to_prepend + self._shape
+            self._shape = expanded_shape
+            self._strides = tuple([prod(expanded_shape[i+1:]) for i in range(len(expanded_shape))]) 
         assert(len(self._shape) == len (new_shape))
         new_strides=list(self._strides)
         for i in range(len(new_shape)):
