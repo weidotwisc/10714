@@ -673,6 +673,7 @@ def sum(a, axis=None, keepdims=False):
     return a.sum(axis=axis, keepdims=keepdims)
 
 
+
 def flip(a, axes):
     return a.flip(axes)
 
@@ -683,4 +684,11 @@ def swapaxes(a, axis0, axis1):
     axes[axis0] = axis1
     axes[axis1] = axis0
     return a.permute(tuple(axes))
-                 
+# weiz 2024-06-20 add NDArray support for max, for the convinience of logsumexp
+def max(a, axis=None, keepdims=False):
+    return a.max(axis=axis, keepdims=keepdims)
+# weiz 2024-06-20 add NDArray support for squeeze, for the convinience of logsumexp
+def squeeze(a, axis=None):
+    orig_shape = a.shape
+    new_shape = tuple(x for x in orig_shape if x!=1)
+    return a.reshape(new_shape)

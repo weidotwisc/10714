@@ -5,7 +5,7 @@ from ..autograd import TensorTuple, TensorTupleOp
 
 from .ops_mathematic import *
 
-import numpy as array_api
+from ..backend_selection import array_api, BACKEND 
 
 class LogSoftmax(TensorOp):
     def compute(self, Z):
@@ -37,6 +37,7 @@ class LogSumExp(TensorOp):
     def compute(self, Z):
         ### BEGIN YOUR SOLUTION
         self.fwd_input_orig_shape = Z.shape
+        print("!!!!", array_api)
         max_z = array_api.max(Z, axis=self.axes, keepdims=True) # keep the annihilated axes as dimension 1, that is long time what I want
         z_minus_z_max = Z - max_z # because I keep the annihilated dimension as 1, so here max_z can be bcasted to Z properly
         f = array_api.exp(z_minus_z_max)
