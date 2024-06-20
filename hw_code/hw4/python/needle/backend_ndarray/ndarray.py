@@ -313,17 +313,25 @@ class NDArray:
         if(len(self._shape) < len(new_shape)): # weiz 2024-06-18 we allow a lower rank tensor to bcast to a higher rank tensor
             num_ones_to_prepend = len(new_shape) - len(self._shape) # now we just prepend the shape with 1s and then reshape it to this expanded shape
             expanded_shape = (1,)* num_ones_to_prepend + self._shape
-            self._shape = expanded_shape
-            self._strides = tuple([prod(expanded_shape[i+1:]) for i in range(len(expanded_shape))]) 
+            #self._shape = expanded_shape
+            expanded_shape_strides = tuple([prod(expanded_shape[i+1:]) for i in range(len(expanded_shape))]) 
+            new_strides=list(expanded_shape_strides)
+            for i in range(len(new_shape)):
+                if(self._shape[i] == 1):
+                    if(new_shape[i] > 1):
+                        new_strides[i]=0
+                else:
+                    assert(self._shape[i] == new_shape[i])
         # end of weiz 2024-06-18 this if clause implements the logic that bcast from a smaller rank to a larger rank if possible
-        assert(len(self._shape) == len (new_shape))
-        new_strides=list(self._strides)
-        for i in range(len(new_shape)):
-            if(self._shape[i] == 1):
-                if(new_shape[i] > 1):
-                    new_strides[i]=0
-            else:
-                assert(self._shape[i] == new_shape[i])
+        else:
+            assert(len(self._shape) == len (new_shape))
+            new_strides=list(self._strides)
+            for i in range(len(new_shape)):
+                if(self._shape[i] == 1):
+                    if(new_shape[i] > 1):
+                        new_strides[i]=0
+                else:
+                    assert(self._shape[i] == new_shape[i])
         return NDArray.make(new_shape, strides=tuple(new_strides), device=self._device, handle=self._handle)
 
         ### END YOUR SOLUTION
@@ -430,6 +438,8 @@ class NDArray:
             )
 
     ### Collection of elementwise and scalar function: add, multiply, boolean, etc
+
+    #def bcastable()
 
     def ewise_or_scalar(self, other, ewise_func, scalar_func):
         """Run either an elementwise or scalar version of a function,

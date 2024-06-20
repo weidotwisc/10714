@@ -39,6 +39,7 @@ class LogSumExp(TensorOp):
         self.fwd_input_orig_shape = Z.shape
         print("!!!!", array_api)
         max_z = array_api.max(Z, axis=self.axes, keepdims=True) # keep the annihilated axes as dimension 1, that is long time what I want
+        #max_z_bcast = array_api.broadcast_to(max_z, Z.shape)
         z_minus_z_max = Z - max_z # because I keep the annihilated dimension as 1, so here max_z can be bcasted to Z properly
         f = array_api.exp(z_minus_z_max)
         sum_exp_z = array_api.sum(f, axis=self.axes, keepdims=True) # similar to max, keep the annihiated axes as dimension 1
