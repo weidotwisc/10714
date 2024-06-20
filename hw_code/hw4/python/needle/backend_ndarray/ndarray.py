@@ -308,11 +308,14 @@ class NDArray:
         #print(self._shape) # (1,)
         #print("!!!")
         #print(new_shape) # (1,1,1) weiz 2024-06-17
+        
+        # weiz 2024-06-18 this if clause implements the logic that bcast from a smaller rank to a larger rank if possible
         if(len(self._shape) < len(new_shape)): # weiz 2024-06-18 we allow a lower rank tensor to bcast to a higher rank tensor
             num_ones_to_prepend = len(new_shape) - len(self._shape) # now we just prepend the shape with 1s and then reshape it to this expanded shape
             expanded_shape = (1,)* num_ones_to_prepend + self._shape
             self._shape = expanded_shape
             self._strides = tuple([prod(expanded_shape[i+1:]) for i in range(len(expanded_shape))]) 
+        # end of weiz 2024-06-18 this if clause implements the logic that bcast from a smaller rank to a larger rank if possible
         assert(len(self._shape) == len (new_shape))
         new_strides=list(self._strides)
         for i in range(len(new_shape)):
@@ -573,11 +576,13 @@ class NDArray:
         if isinstance(axis, tuple) and not axis:
             raise ValueError("Empty axis in reduce")
 
-        if axis is None:
+        if axis is None: 
             view = self.compact().reshape((1,) * (self.ndim - 1) + (prod(self.shape),))
             #out = NDArray.make((1,) * self.ndim, device=self.device)
-            out = NDArray.make((1,), device=self.device)
-
+            if keepdims is False: # weiz 2024-06-19, note keepdims didn't have an impact when axis is None, weiz had fixed this issue here
+                out = NDArray.make((1,), device=self.device)
+            else:
+                out = NDArray.make((1,) * self.ndim, device=self.device)
         else:
             if isinstance(axis, (tuple, list)):
                 assert len(axis) == 1, "Only support reduction over a single axis"

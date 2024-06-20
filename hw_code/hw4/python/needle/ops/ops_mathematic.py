@@ -247,11 +247,21 @@ class Summation(TensorOp):
             #self.axes = tuple(range(len(self.)))
 
 
-    def compute(self, a):
+    def compute(self, a): # weiz 2024-06-19, note a is of NDArray
         ### BEGIN YOUR SOLUTION
-        #if(self.axes is None):
-        #    self.axes = tuple(range(len(a.shape)))
-        return array_api.sum(a, axis=self.axes)
+        # weiz 2024-06-19 support reduce over multiple axes
+        if self.axes is not None:
+            reverse_axes = tuple(sorted(self.axes, reverse=True))
+            for axis in reverse_axes:
+                a = array_api.sum(a, axis=axis, keepdims=False) # still need to make keepdims to be false as this is the default reduce_view_out default and make tests happy
+            return a
+        else:
+            #reverse_axes = (range(len(a.shape)))[::-1]
+            return array_api.sum(a, axis=self.axes, keepdims=False) # weiz 2024-06-19, note keepdims=True didn't really work because the reduce_view_out call didn't support keepdims when axis is None, but weiz had fixed it
+        # end of weiz 2024-06-19 support reduce over multiple axes
+    
+        #return array_api.sum(a, axis=self.axes) # used to be just one-liner if backend is numpy, now we need to support reduce over multiple axes
+        
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
