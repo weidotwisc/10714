@@ -284,6 +284,7 @@ class NDArray:
         return NDArray.make(permuted_shape, strides=permuted_strides, device=self._device, handle=self._handle)
         ### END YOUR SOLUTION
 
+    
     def broadcast_to(self, new_shape):
         """
         Broadcast an array to a new shape.  new_shape's elements must be the
@@ -313,11 +314,11 @@ class NDArray:
         if(len(self._shape) < len(new_shape)): # weiz 2024-06-18 we allow a lower rank tensor to bcast to a higher rank tensor
             num_ones_to_prepend = len(new_shape) - len(self._shape) # now we just prepend the shape with 1s and then reshape it to this expanded shape
             expanded_shape = (1,)* num_ones_to_prepend + self._shape
-            #self._shape = expanded_shape
+            #self._shape = expanded_shape # weiz 2024-06-20, realized we should have never changed self._shape, as _shape should have been immutable, property of a tensor, we can change it just because we bcast to a tensor A, what if later we are asked to bcast to tensor B, don't keep changing 
             expanded_shape_strides = tuple([prod(expanded_shape[i+1:]) for i in range(len(expanded_shape))]) 
             new_strides=list(expanded_shape_strides)
             for i in range(len(new_shape)):
-                if(self._shape[i] == 1):
+                if(expanded_shape[i] == 1):
                     if(new_shape[i] > 1):
                         new_strides[i]=0
                 else:
@@ -439,12 +440,28 @@ class NDArray:
 
     ### Collection of elementwise and scalar function: add, multiply, boolean, etc
 
-    #def bcastable()
+    # def ewise_or_scalar_bcastable(self, other, ewise_func, scalar_func):
+    #     if(len(self.shape) < len(other.shape)):
+    #         ewise_or_scalar(self.broadcast_to(other.shape)
 
     def ewise_or_scalar(self, other, ewise_func, scalar_func):
         """Run either an elementwise or scalar version of a function,
         depending on whether "other" is an NDArray or scalar
         """
+        # weiz 2024-06-20 to make ewise ops amendable to bcast-able tensors, only catch is that other has to be "smaller" than self
+        if isinstance(other, NDArray):
+            if(self.ndim < other.ndim):
+                new_self_array = self.broadcast_to(other.shape)
+                return new_self_array.ewise_or_scalar(other, ewise_func, scalar_func)
+            elif(self.ndim > other.ndim):
+                new_other_array = other.broadcast_to(self.shape)
+                return self.ewise_or_scalar(new_other_array, ewise_func, scalar_func)
+            else:
+                if(self.shape != other.shape): # here is the only catch -- we assume self is the full tensor and other needs to broadcast to self.shape (e.g., other is a reduction result, used in logsumexp)
+                    new_other_array = other.broadcast_to(self.shape)
+                    return self.ewise_or_scalar(new_other_array, ewise_func, scalar_func)
+            
+
         out = NDArray.make(self.shape, device=self.device)
         if isinstance(other, NDArray):
             assert self.shape == other.shape, "operation needs two equal-sized arrays"
