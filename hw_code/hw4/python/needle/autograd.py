@@ -332,6 +332,18 @@ class Tensor(Value):
         else:
             return needle.ops.AddScalar(-other)(self)
 
+    ## added by weiz 2024-06-23, in Tanh bwd()
+    # we need things like 1 - Tensor(0.58) (0.58 == tanh(1)**2)
+    # since 1 is a scalar, not a tensor, 1 - Tensor(0.58) will 
+    # call into __rsub__() , as Tensor(0.58) has a __rsub__ impl
+    # note Tensor(0.58).__rsub__(other) should be * other - Tensor(0.58) *
+    # aka, * other (a scalar, e.g., 1) - self (Tensor, e.g., Tensor(0.58)) *    
+    def __rsub__(self, other):
+        if isinstance(other, Tensor):
+            return other - self
+        else:
+            return (self - other)*(-1)
+
     def __truediv__(self, other):
         if isinstance(other, Tensor):
             return needle.ops.EWiseDiv()(self, other)
@@ -361,7 +373,7 @@ class Tensor(Value):
 
     __radd__ = __add__
     __rmul__ = __mul__
-    __rsub__ = __sub__
+    #__rsub__ = __sub__
     __rmatmul__ = __matmul__
 
 
