@@ -419,7 +419,30 @@ class Stack(TensorOp):
 
     def compute(self, args: TensorTuple) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # step1 assert all tensors have the same shape
+        unit_tensor_shape = args[0].shape
+        for t in args:
+            assert(t.shape == unit_tensor_shape)
+
+        # step 2 allocate stacked_tensor
+        stacked_tensor_shape_as_list = list(unit_tensor_shape)#
+        stacked_tensor_shape_as_list.insert(self.axis, len(args))
+        #stacked_tensor = array_api.empty(tuple(stacked_tensor_shape_as_list)) # use backend empty() method to create memory for stacked tensor
+        
+        # print(array_api)
+        #<module 'needle.backend_ndarray' from '/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/python/needle/backend_ndarray/__init__.py'>
+        # dir(array_api)
+        # ['BackendDevice', 'NDArray', '__builtins__', '__cached__', '__doc__', '__file__', '__loader__', '__name__', '__package__', '__path__', '__spec__', 'all_devices', 'array', 'broadcast_to', 'builtins', 'cpu', 'cpu_numpy', 'cuda', 'default_device', 'empty', 'exp', 'flip', 'full', 'log', 'math', 'max', 'maximum', 'ndarray', 'ndarray_backend_cpu', 'ndarray_backend_cuda', 'ndarray_backend_numpy', 'np', 'operator', 'prod', 'reduce', 'reshape', 'squeeze', 'sum', 'swapaxes', 'tanh']
+
+        # empty() method is available in ndarray.py 
+        stacked_tensor = array_api.empty(tuple(stacked_tensor_shape_as_list), device=args[0].device) # use backend empty() method to create memory for stacked tensor, also we need to provide device argument, otherwise it will generate a numpy backend
+        
+        # step 3 for each portion along self.axis assign tensor
+        for i_th_tensor in range(len(args)):
+            indexing_tuple = tuple(slice(None) if i != self.axis else i_th_tensor for i in range(stacked_tensor.ndim)) # slice(None) means includes all the elements in that dimension
+            stacked_tensor[indexing_tuple] = args[i_th_tensor]
+        return stacked_tensor
+        #raise NotImplementedError()
         ### END YOUR SOLUTION
 
 
