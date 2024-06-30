@@ -419,6 +419,9 @@ class Stack(TensorOp):
 
     def compute(self, args: TensorTuple) -> Tensor:
         ### BEGIN YOUR SOLUTION
+        # weiz 2024-06-30, note args is really tuple of NDArray and returned stack_tensor is NDArray, so it is consisten with parent class Op's signature. Python doesn't seem to enforce type-checking
+        #                  not sure what is this args: TensorTyple --> Tensor trying to achieve here.
+
         # step1 assert all tensors have the same shape
         unit_tensor_shape = args[0].shape
         for t in args:
