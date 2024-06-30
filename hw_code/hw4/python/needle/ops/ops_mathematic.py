@@ -448,7 +448,7 @@ class Stack(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return split(out_grad, self.axis)
         ### END YOUR SOLUTION
 
 
@@ -468,12 +468,21 @@ class Split(TensorTupleOp):
 
     def compute(self, A):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        result_list = []
+        split_len = A.shape[self.axis]
+        new_shape = list(A.shape) ## TODO
+        new_shape.pop(self.axis)  ## TODO
+        for i_th_tensor in range(split_len):
+            indexing_tuple = tuple(slice(None) if i != self.axis else i_th_tensor for i in range(A.ndim))
+            #single_tensor = A[indexing_tuple].compact()#.reshape(new_shape) # might need to squeeze a dimension TODO!! weiz
+            single_tensor = array_api.squeeze(A[indexing_tuple].compact(), self.axis)
+            result_list.append(single_tensor)
+        return tuple(result_list)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return stack(out_grad, self.axis)
         ### END YOUR SOLUTION
 
 

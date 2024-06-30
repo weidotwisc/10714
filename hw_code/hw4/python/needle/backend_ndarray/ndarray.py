@@ -714,8 +714,24 @@ def swapaxes(a, axis0, axis1):
 # weiz 2024-06-20 add NDArray support for max, for the convinience of logsumexp
 def max(a, axis=None, keepdims=False):
     return a.max(axis=axis, keepdims=keepdims)
+
 # weiz 2024-06-20 add NDArray support for squeeze, for the convinience of logsumexp
+# weiz 2024-06-30, add support for tuple of axis, for the convinience of Split ops -- actually I only need to support axis is int for Split, but I accept tuple anyway to be more flexible
+#                 note that even if the NDarray is (1,1,1), and axis is None or (0,1,2) we can still squeeze it to (), the shape will be (), the strides will be (), but the size will be 1 (as the identity of prod() is 1), so it will still work! C Array backend allocate memory by looking at the size field. 
 def squeeze(a, axis=None):
-    orig_shape = a.shape
-    new_shape = tuple(x for x in orig_shape if x!=1)
-    return a.reshape(new_shape)
+    if(axis is None):
+        orig_shape = a.shape
+        new_shape = tuple(x for x in orig_shape if x!=1)
+        return a.reshape(new_shape)
+    else:
+        if(isinstance(axis, int)):
+            axis = tuple([axis])
+        assert (isinstance(axis, tuple))
+        orig_shape = a.shape
+        new_shape_list = []
+        for (i,x) in enumerate(orig_shape):
+            if(i not in axis):
+                new_shape_list.append(x)
+            else:
+                assert(x==1)
+        return a.reshape(tuple(new_shape_list))

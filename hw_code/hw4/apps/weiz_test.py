@@ -80,4 +80,19 @@ def test_stack(shape, axis, l, device):
     out_t = torch.stack(A_t, dim=axis)
     np.testing.assert_allclose(out_t.numpy(), out.numpy(), atol=1e-5, rtol=1e-5)
 
-test_stack((5,5), 0, 1, ndl.cpu())
+#test_stack((5,5), 0, 1, ndl.cpu())
+
+#@pytest.mark.parametrize("shape, axis, l", STACK_PARAMETERS)
+#@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+def test_stack_backward(shape, axis, l, device):
+    _A = [np.random.randn(*shape).astype(np.float32) for i in range(l)]
+    A = [ndl.Tensor(nd.array(_A[i]), device=device) for i in range(l)]
+    A_t = [torch.Tensor(_A[i]) for i in range(l)]
+    for i in range(l):
+        A_t[i].requires_grad = True
+    ndl.stack(A, axis=axis).sum().backward()
+    torch.stack(A_t, dim=axis).sum().backward()
+    for i in range(l):
+        np.testing.assert_allclose(A_t[i].grad.numpy(), A[i].grad.numpy(), atol=1e-5, rtol=1e-5)
+
+test_stack_backward((5,5), 0, 1, ndl.cpu())
