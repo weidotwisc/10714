@@ -1,6 +1,6 @@
 """Core data structures."""
 import needle
-from .backend_numpy import Device, cpu, all_devices
+#from .backend_numpy import Device, cpu, all_devices # weiz 2024-06-30, I am pretty sure this line is not really needed in this hw (as export NEEDLE_BACKEND=nd), as long as I include them from backend_selection see line 20
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple
 import numpy
@@ -17,7 +17,7 @@ TENSOR_COUNTER = 0
 import numpy as array_api
 NDArray = numpy.ndarray
 
-from .backend_selection import array_api, NDArray, default_device
+from .backend_selection import array_api, NDArray, default_device, Device, cpu, all_devices # weiz 2024-06-30 included Device, cpu, all_devices
 
 class Op:
     """Operator definition."""
