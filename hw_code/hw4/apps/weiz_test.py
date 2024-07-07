@@ -95,4 +95,15 @@ def test_stack_backward(shape, axis, l, device):
     for i in range(l):
         np.testing.assert_allclose(A_t[i].grad.numpy(), A[i].grad.numpy(), atol=1e-5, rtol=1e-5)
 
-test_stack_backward((5,5), 0, 1, ndl.cpu())
+#test_stack_backward((5,5), 0, 1, ndl.cpu())
+
+
+
+def ndl_test():
+    v1  = ndl.Tensor([0], dtype="float32")
+    v2 = ndl.exp(v1)
+    v3 = v2 + 1
+    v4 = v2 * v3
+    v4.backward()
+
+ndl_test()
