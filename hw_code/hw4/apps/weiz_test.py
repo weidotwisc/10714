@@ -106,4 +106,14 @@ def ndl_test():
     v4 = v2 * v3
     v4.backward()
 
-ndl_test()
+# ndl_test()
+
+
+def cifar10_dataset():
+    data_path = "/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/data/cifar-10-batches-py/test_batch"
+    import pickle
+    with open(data_path, 'rb') as fo:
+        cifar_data_file = pickle.load(fo, encoding='bytes')
+        print(cifar_data_file)
+
+cifar10_dataset()
