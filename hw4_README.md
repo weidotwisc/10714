@@ -4,6 +4,14 @@ hw_code/hw4
 # Step 1 Prep
 ```bash
 git clone https://github.com/dlsys10714/hw4.git
+cd hw4
+# get cifar10 data
+mkdir data
+cd data
+wget http://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz
+tar vxzf cifar-10-python.tar.gz
+cd ..
+# end of get cifar10 data
 ```
 
 # Step 2 Unit test
