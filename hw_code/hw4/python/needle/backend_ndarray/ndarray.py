@@ -642,7 +642,14 @@ class NDArray:
         Note: compact() before returning.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        result = NDArray.make(self.shape)
+        for axis in axes:
+            dim_along_axis = self.shape[axis]
+            for i in range(dim_along_axis):
+                dst_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (i) for idx_axis in self.ndim )
+                src_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (dim_along_axis-1-i) for idx_axis in self.ndim )
+                result[dst_indexing_tuple] = self[src_indexing_tuple]
+        return result
         ### END YOUR SOLUTION
 
     def pad(self, axes):
@@ -652,7 +659,18 @@ class NDArray:
         axes = ( (0, 0), (1, 1), (0, 0)) pads the middle axis with a 0 on the left and right side.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        assert(len(axes) == self.ndim)
+        new_shape_list = []
+        for pad_axis, dim_axis in zip(axes, self.shape):
+            assert(len(pad_axis) == 2)
+            new_shape_list.append(dim_axis+pad_axis[0]+pad_axis[1])
+        result = NDArray.make(tuple(new_shape_list))
+        result.fill(0)
+        dst_index_slice_list = []
+        for idx, pad_axis in enumerate(axes):
+            dst_index_slice_list.append(slice(pad_axis[0],self.shape[idx]+pad_axis[1],1))
+        result[tuple(dst_index_slice_list)] = self[:]
+        return result
         ### END YOUR SOLUTION
 
 def array(a, dtype="float32", device=None):
