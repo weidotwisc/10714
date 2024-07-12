@@ -8,7 +8,8 @@ import needle as ndl
 from needle import backend_ndarray as nd
 import torch
 
-
+from functools import reduce
+import operator
 
 #print_ndarray_funcs()
 def backward_check(f, *args, **kwargs):
@@ -116,4 +117,34 @@ def cifar10_dataset():
         cifar_data_file = pickle.load(fo, encoding='bytes')
         print(cifar_data_file)
 
-cifar10_dataset()
+#cifar10_dataset()
+
+flip_forward_params = [
+    {"shape": (10, 5), "axes": (0,)},
+    {"shape": (10, 5), "axes": (1,)},
+    {"shape": (10, 5), "axes": (0,1)},
+    {"shape": (10, 32, 32, 8), "axes": (0,1)},
+    {"shape": (3, 3, 6, 8), "axes": (0,1)},
+    {"shape": (10, 32, 32, 8), "axes": (1,2)},
+    {"shape": (3, 3, 6, 8), "axes": (1,2)},
+    {"shape": (10, 32, 32, 8), "axes": (2,3)},
+    {"shape": (3, 3, 6, 8), "axes": (2,3)},
+    {"shape": (10, 32, 32, 8), "axes": (0,1,2,3)},
+]
+
+def weiztest_flip_forward(params, device):
+    np.random.seed(0)
+    shape, axes = params['shape'], params['axes']
+    num_of_elem = reduce(operator.mul, shape)
+    _A = np.arange(num_of_elem).reshape(shape)
+    #_A = np.random.randn(*shape)
+    _B = np.flip(_A, axes)
+    A = ndl.Tensor(_A, device=device)
+    B = ndl.flip(A, axes=axes)
+    assert np.linalg.norm(A.numpy() - _A) < 1e-4
+
+device=ndl.cpu()
+params={}
+params['shape']=(3,2)
+params['axes']=(0,)
+weiztest_flip_forward(params, device)

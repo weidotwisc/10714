@@ -642,14 +642,16 @@ class NDArray:
         Note: compact() before returning.
         """
         ### BEGIN YOUR SOLUTION
-        result = NDArray.make(self.shape)
+        if isinstance(axes, int):
+            axes = tuple(axes)
+        result = NDArray.make(self.shape, device=self.device) # weiz 2024-07-12 important: put in device, otherwise it routes to the default device which could be different
         for axis in axes:
             dim_along_axis = self.shape[axis]
             for i in range(dim_along_axis):
-                dst_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (i) for idx_axis in self.ndim )
-                src_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (dim_along_axis-1-i) for idx_axis in self.ndim )
+                dst_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (i) for idx_axis in range(self.ndim) )
+                src_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (dim_along_axis-1-i) for idx_axis in range(self.ndim))
                 result[dst_indexing_tuple] = self[src_indexing_tuple]
-        return result
+        return result.compact()
         ### END YOUR SOLUTION
 
     def pad(self, axes):
