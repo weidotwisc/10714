@@ -689,7 +689,8 @@ class NDArray:
         dst_index_slice_list = []
         for idx, pad_axis in enumerate(axes):
             dst_index_slice_list.append(slice(pad_axis[0],self.shape[idx]+pad_axis[1],1))
-        result[tuple(dst_index_slice_list)] = self[:] # weiz 2024-07-13, I could have just use result[tuple(dst_index_slice_list)] = self, but i just want to show that 
+        result[tuple(dst_index_slice_list)] = self
+        #result[tuple(dst_index_slice_list)] = self[:] # weiz 2024-07-13, I could have just use result[tuple(dst_index_slice_list)] = self, but i just want to show that 
                                                     # because I have added some code in __getitem__() to make things like [:],  [1] work with variable dimensions, this work too
         return result
         ### END YOUR SOLUTION
