@@ -392,6 +392,15 @@ class NDArray:
         # handle singleton as tuple, everything as slices
         if not isinstance(idxs, tuple):
             idxs = (idxs,)
+        
+        # weiz 2024-07-13 add treatment to make idxs the same length as ndim, fill in slice(None) when dimensions are smaller
+        assert(len(idxs) <= self.ndim)
+        if(len(idxs) < self.ndim):
+            filled_slice_none_tuple = (slice(None),)* (self.ndim - len(idxs))
+            idxs = idxs + filled_slice_none_tuple
+        # end of weiz 2024-07-13 add treatment to make idxs the same length as ndim, fill in slice(None) when dimensions are smaller
+        # now stuff like A[:], A[1] would work :)
+
         idxs = tuple(
             [
                 self.process_slice(s, i) if isinstance(s, slice) else slice(s, s + 1, 1)
@@ -411,7 +420,7 @@ class NDArray:
         for dim, sl in enumerate(idxs): # weiz 2023-04-17 note slice is for each dimension
             new_shape.append(math.ceil( (sl.stop-sl.start)/sl.step ))
             new_strides.append(self._strides[dim]*sl.step)
-
+        # weiz 2024-07-13 also note that even if we are get 1 element in the end, the returnred result is an NDArray, this is not the same as in Numpy, which will return a scalar value
         return NDArray.make(shape=tuple(new_shape), strides=tuple(new_strides), device=self._device, handle=self._handle, offset=new_offset) # weiz 204-04-15, back into studying this course
         ### END YOUR SOLUTION
 
@@ -666,12 +675,13 @@ class NDArray:
         for pad_axis, dim_axis in zip(axes, self.shape):
             assert(len(pad_axis) == 2)
             new_shape_list.append(dim_axis+pad_axis[0]+pad_axis[1])
-        result = NDArray.make(tuple(new_shape_list))
+        result = NDArray.make(tuple(new_shape_list), device=self.device)
         result.fill(0)
         dst_index_slice_list = []
         for idx, pad_axis in enumerate(axes):
             dst_index_slice_list.append(slice(pad_axis[0],self.shape[idx]+pad_axis[1],1))
-        result[tuple(dst_index_slice_list)] = self[:]
+        result[tuple(dst_index_slice_list)] = self[:] # weiz 2024-07-13, I could have just use result[tuple(dst_index_slice_list)] = self, but i just want to show that 
+                                                    # because I have added some code in __getitem__() to make things like [:],  [1] work with variable dimensions, this work too
         return result
         ### END YOUR SOLUTION
 

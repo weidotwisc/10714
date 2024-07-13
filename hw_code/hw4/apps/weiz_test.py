@@ -147,4 +147,34 @@ device=ndl.cpu()
 params={}
 params['shape']=(3,2)
 params['axes']=(0,)
-weiztest_flip_forward(params, device)
+#weiztest_flip_forward(params, device)
+
+
+pad_params = [
+    {"shape": (10, 32, 32, 8), "padding": ( (0, 0), (2, 2), (2, 2), (0, 0) )},
+    {"shape": (10, 32, 32, 8), "padding": ( (0, 0), (0, 0), (0, 0), (0, 0) )},
+]
+
+def weiztest_pad_forward(params, device):
+    np.random.seed(0)
+    shape, padding = params['shape'], params['padding']
+    #_A = np.random.randn(*shape)
+    num_of_elem = reduce(operator.mul, shape)
+    _A = np.arange(num_of_elem).reshape(shape)
+    _B = np.pad(_A, padding)
+    
+    A = nd.NDArray(_A, device=device)
+    B = A.pad(padding)
+
+    assert np.linalg.norm(A.numpy() - _A) < 1e-4
+
+device=ndl.cpu()
+params={}
+params['shape']=(10, 32, 32, 8)
+params['padding']=( (0, 0), (2, 2), (2, 2), (0, 0) )
+#weiztest_pad_forward(params, device)
+
+_A = np.arange(24).reshape(2,3,4)
+A= nd.NDArray(_A, device=device)
+x=A[:]
+print(x)
