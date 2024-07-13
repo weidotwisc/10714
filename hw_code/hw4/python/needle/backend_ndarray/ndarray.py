@@ -651,16 +651,25 @@ class NDArray:
         Note: compact() before returning.
         """
         ### BEGIN YOUR SOLUTION
-        if isinstance(axes, int):
-            axes = tuple(axes)
-        result = NDArray.make(self.shape, device=self.device) # weiz 2024-07-12 important: put in device, otherwise it routes to the default device which could be different
+        if isinstance(axes, int): # weiz 2024-07-13 just to play safe, but test cases don't seem to have singlenton case
+            axes = (axes,)
+        # alternative 1: use slice(None) indexing, no need to compact() on result
+        """ result = NDArray.make(self.shape, device=self.device) # weiz 2024-07-12 important: put in device, otherwise it routes to the default device which could be different
         for axis in axes:
             dim_along_axis = self.shape[axis]
             for i in range(dim_along_axis):
                 dst_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (i) for idx_axis in range(self.ndim) )
                 src_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (dim_along_axis-1-i) for idx_axis in range(self.ndim))
-                result[dst_indexing_tuple] = self[src_indexing_tuple]
-        return result.compact()
+                result[dst_indexing_tuple] = self[src_indexing_tuple] """
+
+        # alternative 2: use strides=-1 trick from lecture
+        new_offset = 0
+        new_strides_list=list(self.strides)
+        for axis in axes:
+            new_offset += (self.shape[axis]-1)*self.strides[axis]
+            new_strides_list[axis] = self.strides[axis]*(-1)
+        result = NDArray.make(shape=self.shape, strides=tuple(new_strides_list), offset=new_offset, handle=self._handle, device=self.device).compact()
+        return result
         ### END YOUR SOLUTION
 
     def pad(self, axes):
