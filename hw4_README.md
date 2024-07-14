@@ -23,6 +23,7 @@ python3 -m pytest -l -v -k "nd_backend"
 python3 -m pytest -l -v -k "test_cifar10"
 python3 -m pytest -l -v -k "pad_forward"
 python3 -m pytest -l -v -k "flip"
+python3 -m pytest -l -v -k "dilate"
 ```
 
 # Step3 test all
