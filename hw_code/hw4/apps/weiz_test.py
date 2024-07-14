@@ -174,7 +174,18 @@ params['shape']=(10, 32, 32, 8)
 params['padding']=( (0, 0), (2, 2), (2, 2), (0, 0) )
 #weiztest_pad_forward(params, device)
 
-_A = np.arange(24).reshape(2,3,4)
-A= nd.NDArray(_A, device=device)
-x=A[:]
-print(x)
+
+def weiztest_ndarray_indexing():
+    _A = np.arange(24).reshape(2,3,4)
+    A= nd.NDArray(_A, device=device)
+    x=A[:]
+    print(x)
+
+def weiztest_dilate():
+    _A = np.arange(4).reshape(2,2)
+    A = nd.NDArray(_A, device=ndl.cpu())
+    dilated_A = A.dilate(axes=(0,1), dilation=1)
+    print(dilated_A)
+    print(dilated_A.undilate(axes=(0,1), dilation=1))
+
+weiztest_dilate()

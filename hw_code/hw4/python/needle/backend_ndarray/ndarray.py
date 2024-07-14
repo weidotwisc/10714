@@ -695,6 +695,49 @@ class NDArray:
         return result
         ### END YOUR SOLUTION
 
+    # weiz 2024-07-14 
+    # axes is a tuple of axes along which dilation is added
+    # dilation is an integer , all the dilated axes apply the same amount of dilation
+    def dilate(self, axes:tuple, dilation:int):
+        # step 1 create shape w/ proper shape, each dilated dimension is increased by (1+dilation) times
+        new_shape_list=list(self.shape)
+        for axis in axes:
+            new_shape_list[axis]*=(1+dilation)
+        result = NDArray.make(shape=tuple(new_shape_list), device=self.device)
+        result.fill(0)
+
+        # step 2 assign elements
+        dest_indexing_slices=[]
+        for axis in range(self.ndim):
+            if (axis in axes):
+                sl = slice(None, None, 1+dilation)
+                dest_indexing_slices.append(sl)
+            else:
+                sl = slice(None)
+                dest_indexing_slices.append(sl)
+        result[tuple(dest_indexing_slices)] = self # always use tuple to contain slicing for __getitem__
+        return result
+    
+    def undilate(self, axes:tuple, dilation:int):
+        # step 1 create shape w/ proper shape, each undilated dimension is decreased by (1+dilation) times
+        new_shape_list = list(self.shape)
+        for axis in axes:
+            new_shape_list[axis] //= (1+dilation) # weiz 2024-07-14 use inter division to make sure each dimension is integer (e.g., 2) not a float (e.g., 2.0)
+                   # the intricacy is that later when we call NDArray.make it will call into C code, it has strong requirement of type, elementsize 4.0 is not acceptable
+        result = NDArray.make(shape=tuple(new_shape_list), device=self.device)
+
+        # step 2 assign elements
+        src_indexing_slices=[]
+        for axis in range(self.ndim):
+            if (axis in axes):
+                sl = slice(None, None, 1+dilation)
+                src_indexing_slices.append(sl)
+            else:
+                sl = slice(None)
+                src_indexing_slices.append(sl)
+        result = self[tuple(src_indexing_slices)]
+        return result
+
 def array(a, dtype="float32", device=None):
     """Convenience methods to match numpy a bit more closely."""
     dtype = "float32" if dtype is None else dtype
