@@ -9,7 +9,7 @@ HOSTNAME=$(hostname)
 if [ "$HOSTNAME" = "f5" ]; then
     export PYTHON_EXECUTABLE_PATH="/mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python"
 elif [[ "$HOSTNAME" == ccc* ]]; then
-    export PYTHON_EXECUTABLE_PATH="/dccstor/weiz/.pyenv/versions/wisdom_test/bin/python"
+    export PYTHON_EXECUTABLE_PATH="/dccstor/weiz/.pyenv/versions/3.11.0/envs/codenet/bin/python"
 else
     echo "Hostname does not match any specified pattern."
     exit 1
