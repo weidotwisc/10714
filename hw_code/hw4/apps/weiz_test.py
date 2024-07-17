@@ -7,9 +7,12 @@ sys.path.append("/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/python")
 import needle as ndl
 from needle import backend_ndarray as nd
 import torch
+import torch.nn as nn
 
 from functools import reduce
 import operator
+import timeit
+import statistics
 
 #print_ndarray_funcs()
 def backward_check(f, *args, **kwargs):
@@ -188,4 +191,234 @@ def weiztest_dilate():
     print(dilated_A)
     print(dilated_A.undilate(axes=(0,1), dilation=1))
 
-weiztest_dilate()
+#weiztest_dilate()
+
+
+# weiz 2024-07-16 play w/ Zico's convolution code
+# taken from convolution_implementation.ipynb
+def conv_reference_ndl(Z, weight):
+    # NHWC -> NCHW
+    Z_torch = torch.tensor(Z).permute(0,3,1,2)
+    
+    # KKIO -> OIKK
+    W_torch = torch.tensor(weight).permute(3,2,0,1)
+    
+    # run convolution
+    out = nn.functional.conv2d(Z_torch, W_torch)
+    
+    # NCHW -> NHWC
+    return out.permute(0,2,3,1).contiguous().numpy()
+
+def conv_naive_ndl(Z, weight):
+    N,H,W,C_in = Z.shape
+    K,_,_,C_out = weight.shape
+    
+    out = np.zeros((N,H-K+1,W-K+1,C_out));
+    for n in range(N):
+        for c_in in range(C_in):
+            for c_out in range(C_out):
+                for y in range(H-K+1):
+                    for x in range(W-K+1):
+                        for i in range(K):
+                            for j in range(K):
+                                out[n,y,x,c_out] += Z[n,y+i,x+j,c_in] * weight[i,j,c_in,c_out]
+    return out
+
+
+# Needle formatting (aka tensorflow formatting)
+# Input Z: NHWC
+# Weights (Kernels): KKIO
+def diff_conv_ndl():
+    Z = np.random.randn(10,32,32,8) # NHWC
+    W = np.random.randn(3,3,8,16) 
+
+
+    # weiz code
+    Z= np.arange(10*32*32*8).reshape((10,32,32,8))
+    W = np.arange(3*3*8*16).reshape((3,3,8,16))
+
+    _N=1
+    _C=8
+    _H=9
+    _W=9
+    _O=16
+    _I=_C
+    _K=3
+    
+  
+    Z = np.arange(_N*_I*_H*_W).reshape((_N, _I, _H, _W)).astype(int)
+    Z = Z.transpose((0,2,3,1))
+    
+    Weights = np.arange(_O*_I*_K*_K).reshape((_O, _I, _K, _K)).astype(int)
+    Weights = Weights.transpose(2,3,1,0)
+    W = Weights
+    # weiz code 
+
+
+    out = conv_reference_ndl(Z,W)
+    out2 = conv_naive_ndl(Z,W)
+    print(out.shape)
+    print(out2.shape)
+    print(np.linalg.norm(out-out2))
+    #timer =timeit.Timer(lambda: conv_naive_ndl(Z,W))
+    timer =timeit.Timer(lambda: conv_reference_ndl(Z,W))
+    times = timer.repeat(repeat=10, number=1)
+    mean_time = statistics.mean(times)
+    variance_time = statistics.variance(times)
+
+    print(f"Execution times: {times}")
+    print(f"Mean execution time: {mean_time} seconds")
+    print(f"Variance in execution time: {variance_time} seconds^2")
+
+    print("-------")
+    print(out[0,4,6,12])
+    print(out2[0,4,6,12])
+    out = out.transpose((0,3,1,2))
+    print(out[0,12,4,6])
+    print("ndl diff is done")
+    
+diff_conv_ndl()
+
+# pyt conv:
+# Input: NCHW
+# Weights: OIKK
+def conv_reference_pyt(Z, W):
+    out = nn.functional.conv2d(torch.Tensor(Z), torch.Tensor(W))
+    return out.contiguous().numpy()
+
+# Z: NCHW
+# Weights: OIKK
+# out_indices: (n,c_out,h,w)
+def debug_conv_naive_pyt(Z, Weights, out_indices:tuple):
+    assert(len(out_indices) == 4)
+    K = Weights.shape[-1]
+    n, c_out, h, w = out_indices
+    kernels = Weights[c_out]
+    inputs = Z[n,:, h:h+K, w:w+K]
+    result = np.sum(kernels*inputs)
+    print(result)
+    return result
+
+
+
+def conv_naive_pyt(Z, Weights):
+    # Z: NCHW
+    # W: OIKK
+    N, C, H, W = Z.shape
+    O, I, K, _ = Weights.shape
+    assert(C==I)
+    out = np.zeros((N,O,H+1-K, W+1-K))
+    # Out: NOH'W'
+    for n in range(N):
+        for c_in in range(I):
+            for c_out in range(O):
+                for h in range (H+1-K):
+                    for w in range (W+1-K):
+                        #print(n,c_out,h,w, " c_in:", c_in)
+                        #assert(out[n,c_out,h,w] == 0)
+                        for k_h in range (K):
+                            for k_w in range(K):
+                                #out[n][c_out][h][w] += Z[n][c_in][h+k_h][w+k_w] * Weights[c_out][c_in][k_h][k_w]
+                                out[n,c_out,h,w] += Z[n,c_in,h+k_h,w+k_w] * Weights[c_out,c_in,k_h,k_w]
+    return out
+
+import numpy as np
+
+
+
+
+# Pyt formatting
+# Input Z: NCHW
+# Weights (Kernels): OIKK
+def diff_conv_pyt():
+    # _N=10
+    # _C=8
+    # _H=32
+    # _W=32
+    # _O=16
+    # _I=_C
+    # _K=3
+
+    _N=1
+    _C=8
+    _H=9
+    _W=9
+    _O=16
+    _I=_C
+    _K=3
+    
+    Z = np.random.randn(_N, _I, _H, _W)
+    Weights = np.random.randn(_O, _I, _K, _K)
+    Z = np.arange(_N*_I*_H*_W).reshape((_N, _I, _H, _W)).astype(int)
+    #Z = np.ones((_N, _I, _H, _W))
+    Weights = np.arange(_O*_I*_K*_K).reshape((_O, _I, _K, _K)).astype(int)
+    #Weights = np.ones((_O, _I, _K, _K))
+    #Weights = np.ones(_O*_I*_K*_K).reshape((_O, _I, _K, _K)) / (_K*_K) # an averaging operator
+    out = conv_reference_pyt(Z,Weights)
+    out2 = conv_naive_pyt(Z,Weights)
+    out2 = conv2d_batch_chatgpt(Z, Weights)
+    print(out.shape)
+    print(out2.shape)
+    print(np.linalg.norm(out-out2))
+    #print(out - out2)
+    diff = np.nonzero(out-out2)
+    print("diff.len: ")
+    print(len(diff))
+    idx_lst=[]
+    for _diff in diff:
+        if(len(_diff) > 0):
+            print(_diff[0])
+            idx_lst.append(_diff[0])
+    print(idx_lst)
+    print(out[tuple(idx_lst)])
+    print(out2[tuple(idx_lst)])
+    print("-----")
+    debug_conv_naive_pyt(Z, Weights, tuple(idx_lst))
+    #print(out[diff[0]])
+    #print(out2[diff[0]])
+        #print(len(_diff))
+        #print(out[_diff])
+        #print(out2[_diff])
+
+    #print(np.nonzero(out-out2))
+    #print(out)
+
+    #print(out2)
+    #timer =timeit.Timer(lambda: conv_naive_pyt(Z,Weights))
+    #timer =timeit.Timer(lambda: conv_reference_pyt(Z,Weights))
+    #times = timer.repeat(repeat=3, number=1)
+    #mean_time = statistics.mean(times)
+    #variance_time = statistics.variance(times)
+
+    #print(f"Execution times: {times}")
+    #print(f"Mean execution time: {mean_time} seconds")
+    #print(f"Variance in execution time: {variance_time} seconds^2")
+
+
+
+def conv2d_batch_chatgpt(input_array, kernel):
+    print("hi from chatgpt")
+    # Get the dimensions of the input array and the kernel
+    batch_size, in_channels, input_h, input_w = input_array.shape
+    out_channels, _, kernel_h, kernel_w = kernel.shape
+    
+    # Calculate the dimensions of the output array
+    output_h = input_h - kernel_h + 1
+    output_w = input_w - kernel_w + 1
+    
+    # Initialize the output array
+    output_array = np.zeros((batch_size, out_channels, output_h, output_w))
+    
+    # Perform the convolution for each sample in the batch
+    for b in range(batch_size):
+        for oc in range(out_channels):
+            for ic in range(in_channels):
+                for i in range(output_h):
+                    for j in range(output_w):
+                        output_array[b, oc, i, j] += np.sum(
+                            input_array[b, ic, i:i+kernel_h, j:j+kernel_w] * kernel[oc, ic]
+                        )
+    
+    return output_array
+
+diff_conv_pyt()
