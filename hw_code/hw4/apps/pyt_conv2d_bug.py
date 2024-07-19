@@ -105,13 +105,14 @@ def investigate_conv_pyt():
     print("Point 2: many elements in the output tensors of pyt conv2d() and naive conv2d() are different ")
     print(f"{len(diff[0])} elements out of {out.size} are different!")
     print("For brevity, I only print the first 10 elements")
-    print_diff(out, out2, cutoff=10)
+    print_diff(out, out2, cutoff=100)
     print("----------")
     # investigate location (0,12,4,6)
     print("Point 3: we pick the first different element and only convolve the relevant inputs and kernels")
     print("pyt seems to generate correct result, regardless of treating them as ints or floats")
     print("This seems to indicate only when treating with larger tensors ints vs floats will become an issue for pyt conv2d()")
-    loc=(0,12,4,6)
+    #loc=(0,12,4,6)
+    #loc=(0,15,6,4)
     investigate_loc(Z, Weights, loc)
     print("----------")
 
@@ -138,8 +139,22 @@ def minimal_bug_exposing_case():
     print(f"difference 2-norm pyt(int) vs naive: {np.linalg.norm(out1-out2)}")
 
 
-
-
+def compare_rand():
+    _N=1
+    _C=8
+    _H=32
+    _W=32
+    _O=16
+    _I=_C
+    _K=3
+    
+   
+    Z = np.random.randn(_N, _I, _H, _W)+1
+    Weights = np.random.randn(_O, _I, _K, _K)+1
+    out = conv_reference_pyt(Z,Weights)
+    out2 = conv_naive_pyt(Z,Weights)
+    print(f"difference 2-norm pyt(float) vs naive: {np.linalg.norm(out2-out)}")
+    print(np.allclose(out, out2, rtol=1e-2))
 
 
 
@@ -157,7 +172,8 @@ def main():
     if(FLAGS.investigate):
         investigate_conv_pyt()
     else:
-        minimal_bug_exposing_case()
+        #minimal_bug_exposing_case()
+        compare_rand()
 
 if __name__ == "__main__":
     main()
