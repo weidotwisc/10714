@@ -5,7 +5,7 @@ import numpy as np
 from . import ndarray_backend_numpy
 from . import ndarray_backend_cpu
 import builtins # weiz 2024-04-17 in order to use the builtins.sum() function on list, sum has been redefined in this file
-
+from typing import Optional # weiz 2024-07-28 imported for Conv
 # math.prod not in Python 3.7
 def prod(x):
     return reduce(operator.mul, x, 1)
@@ -737,6 +737,8 @@ class NDArray:
                 src_indexing_slices.append(sl)
         result = self[tuple(src_indexing_slices)]
         return result
+    
+    #def conv(self, stride: Optional[int] = 1, padding: Optional[int] = 0)
 
 def array(a, dtype="float32", device=None):
     """Convenience methods to match numpy a bit more closely."""
