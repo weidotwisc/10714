@@ -563,10 +563,10 @@ class Conv(TensorOp):
         inner_dim = K * K* C_in
         Z_shape = (N, H-K+1, W-K+1, K, K, C_in)
         Z_strides = (Ns,Hs,Ws,Hs,Ws, C_ins)
-        Z = A.as_strided(shape=Z_shape, strides=Z_strides)
+        Z = A.as_strided(shape=Z_shape, strides=Z_strides).compact()
         Z = Z.reshape((N*(H-K+1)*(W-K+1), inner_dim))
-        W = B.reshape((inner_dim, C_out))
-        out = Z @ W
+        W_kernel = B.reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
+        out = Z @ W_kernel
         out = out.reshape((N, H-K+1, W-K+1, C_out))
         return out
         ### END YOUR SOLUTION

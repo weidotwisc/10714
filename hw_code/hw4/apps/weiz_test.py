@@ -424,7 +424,7 @@ def conv2d_batch_chatgpt(input_array, kernel):
 #diff_conv_pyt()
 
 
-def weiztest_op_conv(Z_shape, W_shape, stride, padding, backward, device):
+def weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
     np.random.seed(0)
     import torch
     _Z = np.random.randn(*Z_shape)*5
@@ -457,4 +457,4 @@ def weiztest_op_conv(Z_shape, W_shape, stride, padding, backward, device):
 Z_shape, W_shape, stride, padding = ( (3, 14, 14, 8), (3, 3, 8, 16), 1, 0 )
 backward = False
 device = ndl.cpu()
-weiztest_op_conv(Z_shape, W_shape, stride, padding, backward, device)
+weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
