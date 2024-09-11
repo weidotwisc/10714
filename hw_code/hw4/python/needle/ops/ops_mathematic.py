@@ -557,17 +557,34 @@ class Conv(TensorOp):
     # weiz 2024-07-30, A is Z, B is W
     def compute(self, A, B):
         ### BEGIN YOUR SOLUTION
+        #  pad A first 
+        A = A.pad( ((0,0), (self.padding, self.padding), (self.padding, self.padding), (0,0)) )
+        
         N,H,W, C_in = A.shape
         Ns,Hs,Ws,C_ins = A.strides
         K, _, _, C_out = B.shape
         inner_dim = K * K* C_in
-        Z_shape = (N, H-K+1, W-K+1, K, K, C_in)
-        Z_strides = (Ns,Hs,Ws,Hs,Ws, C_ins)
+
+        # when no convolution striding
+        # Z_shape = (N, H-K+1, W-K+1, K, K, C_in) 
+        # Z_strides = (Ns,Hs,Ws,Hs,Ws, C_ins)
+        # Z = A.as_strided(shape=Z_shape, strides=Z_strides).compact()
+        # Z = Z.reshape((N*(H-K+1)*(W-K+1), inner_dim))
+        # W_kernel = B.reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
+        # out = Z @ W_kernel
+        # out = out.reshape((N, H-K+1, W-K+1, C_out)) # when there is no convolution 
+        
+        
+        # when there is convolution striding
+        H_output = (H-K+1) // self.stride
+        W_output = (W-K+1) // self.stride
+        Z_shape = (N, H_output, W_output, K, K, C_in) # when no striding
+        Z_strides = (Ns,Hs * self.stride,Ws * self.stride,Hs,Ws, C_ins)
         Z = A.as_strided(shape=Z_shape, strides=Z_strides).compact()
-        Z = Z.reshape((N*(H-K+1)*(W-K+1), inner_dim))
+        Z = Z.reshape(( N*H_output*W_output, inner_dim ))
         W_kernel = B.reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
         out = Z @ W_kernel
-        out = out.reshape((N, H-K+1, W-K+1, C_out))
+        out = out.reshape((N, H_output, W_output, C_out))
         return out
         ### END YOUR SOLUTION
 
