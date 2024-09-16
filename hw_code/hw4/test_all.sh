@@ -6,3 +6,4 @@ python3 -m pytest -l -v -k "test_cifar10"
 python3 -m pytest -l -v -k "pad_forward"
 python3 -m pytest -l -v -k "flip"
 python3 -m pytest -l -v -k "dilate"
+python3 -m pytest  -l -v -k "op_conv and forward" # weiz 2024-09-16
