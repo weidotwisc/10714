@@ -576,9 +576,9 @@ class Conv(TensorOp):
         
         
         # when there is convolution striding
-        H_output = (H-K+1) // self.stride
-        W_output = (W-K+1) // self.stride
-        Z_shape = (N, H_output, W_output, K, K, C_in) # when no striding
+        H_output = ((H-K) // self.stride) + 1 # weiz bug fix 2024-09-16, previously it was (H-K+1) // self.stride, H=5,K=3,stride=2 would fail
+        W_output = ((W-K) // self.stride) + 1 # weiz bug fix 2024-09-16, previously it was (W-K+1) // self.stride, W=5,K=3,stride=2 would fail
+        Z_shape = (N, H_output, W_output, K, K, C_in) 
         Z_strides = (Ns,Hs * self.stride,Ws * self.stride,Hs,Ws, C_ins)
         Z = A.as_strided(shape=Z_shape, strides=Z_strides).compact()
         Z = Z.reshape(( N*H_output*W_output, inner_dim ))
