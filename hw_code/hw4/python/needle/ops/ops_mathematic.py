@@ -6,7 +6,7 @@ from typing import Optional, List, Tuple, Union
 from ..autograd import NDArray
 from ..autograd import Op, Tensor, Value, TensorOp
 from ..autograd import TensorTuple, TensorTupleOp
-import numpy
+import numpy as np # weiz 2024-09-28 i need np.argsort for the permute() back prop
 
 # NOTE: we will import numpy as the array_api
 # as the backend for our computations, this line will change in later homeworks
@@ -183,6 +183,22 @@ class Transpose(TensorOp):
 def transpose(a, axes=None):
     return Transpose(axes)(a)
 
+# weiz 2024-09-28
+# For HW4 conv backward, i need to permute kernel and input
+class Permute(TensorOp):
+    def __init__(self, axes: Optional[tuple] = None):
+        self.axes = axes
+
+    def compute(self, a):
+        return array_api.permute(a, self.axes) 
+
+    def gradient(self, out_grad, node):
+        ### BEGIN YOUR SOLUTION
+        return permute(out_grad, np.argsort(self.axes))
+        ### END YOUR SOLUTION
+def permute(a, axes=None):
+    return Permute(axes)(a) # weiz 2024-09-28, look at __call__ in TensorOp to see how a is passed as the input edge for the compute graph
+# end of weiz 2024-09-28 implemenation of Permute ops
 
 class Reshape(TensorOp):
     def __init__(self, shape):
@@ -590,7 +606,19 @@ class Conv(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        
+        # weiz 2024-09-28 
+        # step 1 calculate gradients w.r.t filter F
+        X = node.inputs[0]
+        F = node.inputs[1]
+        X_perm = permute(X, (3,1,2,0))
+        out_grad_perm = permute(out_grad, (1,2,0,3))
+        f_grad_perm = conv(X_perm, out_grad_perm, padding=self.padding)
+        f_grad = permute(f_grad_perm, (1,2,0,3))
+
+        # step 2 calculate gradients w.r.t input X
+        x_grad =None
+        return x_grad, f_grad
         ### END YOUR SOLUTION
 
 

@@ -820,3 +820,7 @@ def squeeze(a, axis=None):
             else:
                 assert(x==1)
         return a.reshape(tuple(new_shape_list))
+
+
+def permute(a, axis=None):
+    return a.permute(axis)
