@@ -586,7 +586,7 @@ class Conv(TensorOp):
         # Z_strides = (Ns,Hs,Ws,Hs,Ws, C_ins)
         # Z = A.as_strided(shape=Z_shape, strides=Z_strides).compact()
         # Z = Z.reshape((N*(H-K+1)*(W-K+1), inner_dim))
-        # W_kernel = B.reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
+        # W_kernel = B.compact().reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
         # out = Z @ W_kernel
         # out = out.reshape((N, H-K+1, W-K+1, C_out)) # when there is no convolution 
         
@@ -598,7 +598,8 @@ class Conv(TensorOp):
         Z_strides = (Ns,Hs * self.stride,Ws * self.stride,Hs,Ws, C_ins)
         Z = A.as_strided(shape=Z_shape, strides=Z_strides).compact()
         Z = Z.reshape(( N*H_output*W_output, inner_dim ))
-        W_kernel = B.reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
+        W_kernel = B.compact().reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
+                    # weiz 2024-09-29 I didn't do B.compact() before so when B(aka filter) is reshaped, needle complains
         out = Z @ W_kernel
         out = out.reshape((N, H_output, W_output, C_out))
         return out
@@ -613,10 +614,10 @@ class Conv(TensorOp):
         F = node.inputs[1]
         K,_,_,_ = F.shape
         X_perm = permute(X, (3,1,2,0))
-        out_grad_perm = permute(out_grad, (1,2,0,3))
-        f_grad_perm = conv(X_perm, out_grad_perm, padding=self.padding)
+        out_grad_perm = permute(out_grad, (1,2,0,3))   
+        f_grad_perm = conv(X_perm, out_grad_perm, padding=self.padding)    
         f_grad = permute(f_grad_perm, (1,2,0,3))
-
+        
         # step 2 calculate gradients w.r.t input X
         F_flip = flip(F, (0,1)) # flip KK axes
         F_flip_perm = transpose(F_flip) # transpose is the shortcut to permute the last two axes
