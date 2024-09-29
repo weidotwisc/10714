@@ -821,6 +821,6 @@ def squeeze(a, axis=None):
                 assert(x==1)
         return a.reshape(tuple(new_shape_list))
 
-
+# weiz 2024-09-28 add support of NDArray permute for Conv2D backward
 def permute(a, axis=None):
     return a.permute(axis)
