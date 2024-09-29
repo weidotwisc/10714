@@ -611,13 +611,16 @@ class Conv(TensorOp):
         # step 1 calculate gradients w.r.t filter F
         X = node.inputs[0]
         F = node.inputs[1]
+        K,_,_,_ = F.shape
         X_perm = permute(X, (3,1,2,0))
         out_grad_perm = permute(out_grad, (1,2,0,3))
         f_grad_perm = conv(X_perm, out_grad_perm, padding=self.padding)
         f_grad = permute(f_grad_perm, (1,2,0,3))
 
         # step 2 calculate gradients w.r.t input X
-        x_grad =None
+        F_flip = flip(F, (0,1)) # flip KK axes
+        F_flip_perm = transpose(F_flip) # transpose is the shortcut to permute the last two axes
+        x_grad = conv(out_grad, F_flip_perm, padding=K-self.padding-1)
         return x_grad, f_grad
         ### END YOUR SOLUTION
 
