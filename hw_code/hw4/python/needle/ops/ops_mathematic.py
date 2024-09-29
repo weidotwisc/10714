@@ -608,6 +608,9 @@ class Conv(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         
+        # weiz 2024-09-29 handle stride > 1
+        out_grad = dilate(out_grad, (1,2), self.stride-1)
+
         # weiz 2024-09-28 
         # step 1 calculate gradients w.r.t filter F
         X = node.inputs[0]
