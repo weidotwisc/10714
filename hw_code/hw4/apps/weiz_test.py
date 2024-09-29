@@ -455,6 +455,6 @@ def weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
     assert err3 < 1e-1, "outputs match %s, %s" % (y2, out2)
 
 Z_shape, W_shape, stride, padding = ( (3, 14, 14, 8), (3, 3, 8, 16), 1, 0 )
-backward = False
+backward = True
 device = ndl.cpu()
 weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
