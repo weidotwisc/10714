@@ -25,6 +25,7 @@ python3 -m pytest -l -v -k "pad_forward"
 python3 -m pytest -l -v -k "flip"
 python3 -m pytest -l -v -k "dilate"
 python3 -m pytest  -l -v -k "op_conv and forward"
+python3 -m pytest -l -v -k "op_conv and backward"
 ```
 
 # Step3 test all
