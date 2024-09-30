@@ -565,6 +565,30 @@ def undilate(a, axes, dilation):
     return UnDilate(axes, dilation)(a)
 
 
+# weiz 2024-09-30 implement filter dilation
+class FilterDilate(TensorOp):
+    def __init__(self, axes: tuple, dilation: int):
+        self.axes = axes
+        self.dilation = dilation
+
+    def compute(self, a):
+        ### BEGIN YOUR SOLUTION
+        return a.filterdilate(self.axes, self.dilation)
+        ### END YOUR SOLUTION
+
+    def gradient(self, out_grad, node):
+        ### BEGIN YOUR SOLUTION
+        #return undilate(out_grad, self.axes, self.dilation)
+        return None
+        ### END YOUR SOLUTION
+
+
+def filterdilate(a, axes, dilation):
+    print("weiz filter dilate")
+    return FilterDilate(axes, dilation)(a)
+# weiz 2024-09-30 implement filter dilation
+
+
 class Conv(TensorOp):
     def __init__(self, stride: Optional[int] = 1, padding: Optional[int] = 0):
         self.stride = stride
@@ -609,7 +633,8 @@ class Conv(TensorOp):
         ### BEGIN YOUR SOLUTION
         
         # weiz 2024-09-29 handle stride > 1
-        out_grad = dilate(out_grad, (1,2), self.stride-1)
+        #out_grad = dilate(out_grad, (1,2), self.stride-1)
+        out_grad = filterdilate(out_grad, (1,2), self.stride-1)
 
         # weiz 2024-09-28 
         # step 1 calculate gradients w.r.t filter F
