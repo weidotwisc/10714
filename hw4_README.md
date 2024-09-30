@@ -3,6 +3,8 @@ hw_code/hw4
 
 # Step 1 Prep
 ```bash
+pip3 install --upgrade --no-deps git+https://github.com/dlsyscourse/mugrade.git # might need
+pip3 install numdifftools # might need
 git clone https://github.com/dlsys10714/hw4.git
 cd hw4
 # get cifar10 data
@@ -12,6 +14,8 @@ wget http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
 tar vxzf cifar-10-python.tar.gz
 cd ..
 # end of get cifar10 data
+source ../dlsys.profile
+make # MUST DO so that all the backends are properly built
 ```
 
 # Step 2 Unit test
