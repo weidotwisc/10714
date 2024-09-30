@@ -737,8 +737,32 @@ class NDArray:
                 src_indexing_slices.append(sl)
         result = self[tuple(src_indexing_slices)]
         return result
-    
+
+    # weiz 2024-09-30, create a filter dilate that only add zeros between filter values, instead of what Zico's multiple-size filter dilation do
+    def filterdilate(self, axes:tuple, dilation:int):
+        # step 1 create shape w/ proper shape, each dilated dimension is increased by (1+dilation) times
+        new_shape_list=list(self.shape)
+        for axis in axes:
+            #new_shape_list[axis]*=(1+dilation)
+            new_shape_list[axis] = (1+dilation)*(new_shape_list[axis]-1)+1
+        result = NDArray.make(shape=tuple(new_shape_list), device=self.device)
+        result.fill(0)
+
+        # step 2 assign elements
+        dest_indexing_slices=[]
+        for axis in range(self.ndim):
+            if (axis in axes):
+                sl = slice(None, None, 1+dilation)
+                dest_indexing_slices.append(sl)
+            else:
+                sl = slice(None)
+                dest_indexing_slices.append(sl)
+        result[tuple(dest_indexing_slices)] = self # always use tuple to contain slicing for __getitem__
+        return result
+
     #def conv(self, stride: Optional[int] = 1, padding: Optional[int] = 0)
+
+
 
 def array(a, dtype="float32", device=None):
     """Convenience methods to match numpy a bit more closely."""
