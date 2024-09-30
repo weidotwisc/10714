@@ -5,11 +5,11 @@
 ```bash
 git clone https://github.com/dlsys10714/hw3.git
 pip install cmake --upgrade # too old cmake will not work for cuda
+pip install pybind11
+pip install pytest
 ```
-In CMakeLists.txt add the following the specify the right python to use
-```bash
-set(Python_EXECUTABLE /mnt/nfs/d3nvme0/userhomes/weiz/venvs/bleeding/bin/python) # weiz 2024-03-18 specify the python that I want
-```
+Notice that I have edited [dlsys.profile](./hw_code/dlsys.profile) so that different cluster (dyce, CCC, Vela-LSF) can all find the right ```PYTHON_EXECUTABLE_PATH``` path.
+
 Then do 
 ```bash
 make
@@ -51,7 +51,10 @@ python3 -m pytest -v -k "matmul and cuda"
 source ../dlsys.profile
 ./test_all.sh
 ```
+Note that in ```test_all.sh```, I have added the logic to set up the right ```PYTHONPATH``` and ```NEEDLE_BACKEND```.
 
 # Update: 2024-05-29
 I have added [dlsys.profile](./hw_code/dlsys.profile) so that ```PYTHON_EXECUTABLE_PATH``` is defined for both ccc and f5 and then [CMakeLists.txt](./hw_code/hw3/CMakeLists.txt) can find the right python.
+# Update: 2024-09-30
+I have added support for Vela LSF cluster as well in [dlsys.profile](./hw_code/dlsys.profile)
 
