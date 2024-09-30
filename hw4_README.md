@@ -8,7 +8,7 @@ cd hw4
 # get cifar10 data
 mkdir data
 cd data
-wget http://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz
+wget http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
 tar vxzf cifar-10-python.tar.gz
 cd ..
 # end of get cifar10 data
