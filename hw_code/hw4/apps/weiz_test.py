@@ -472,6 +472,14 @@ Z_shape, W_shape, stride, padding = ( (1, 6, 6, 1), (3, 3, 1, 1), 2, 0 ) # weiz 
 Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 0 )
 # this case will not pass either dilate nor dilatefilter
 
+# weiz 2024-10-02 as long as (H-K)%stride==0, dilatefilter shall pass, notice H can also be padded
+Z_shape, W_shape, stride, padding = ( (1, 9, 9, 1), (3, 3, 1, 1), 3, 0 )
+Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 1 )
+Z_shape, W_shape, stride, padding = ( (1, 255, 255, 1), (3, 3, 1, 1), 2, 0 )
+Z_shape, W_shape, stride, padding = ( (1, 255, 255, 1), (3, 3, 1, 1), 2, 1 )
+Z_shape, W_shape, stride, padding = ( (3, 15, 15, 8), (3, 3, 8, 16), 2, 0 )
+# weiz 2024-10-02 all the above cases can pass dilatefilter , because (H+2p-K)%stride==0
+
 
 #    ( (3, 14, 14, 8), (3, 3, 8, 16), 2, 1 ),
 #    ( (3, 16, 16, 8), (3, 3, 8, 16), 2, 2 ),
