@@ -454,7 +454,29 @@ def weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
         assert err2 < 1e-2, "weight grads match"
     assert err3 < 1e-1, "outputs match %s, %s" % (y2, out2)
 
-Z_shape, W_shape, stride, padding = ( (3, 14, 14, 8), (3, 3, 8, 16), 1, 0 )
+#Z_shape, W_shape, stride, padding = ( (3, 14, 14, 8), (3, 3, 8, 16), 1, 0 ) # weiz 2024-10-01, stride=1, no problem for either dilate or dilatefilter
+
+# Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 0 ) # weiz 2024-10-01, this test pass dilate only.
+
+#Z_shape, W_shape, stride, padding = ( (1, 2, 2, 1), (2, 2, 1, 1), 2, 0 ) # weiz 2024-10-01, this test pass dilatefilter only
+#Z_shape, W_shape, stride, padding = ( (1, 3, 3, 1), (2, 2, 1, 1), 2, 0 ) # weiz 2024-10-01, this test pass dilate only
+Z_shape, W_shape, stride, padding = ( (1, 4, 4, 1), (2, 2, 1, 1), 2, 0 ) # weiz 2024-10-01, this test only pass dilatefilter but not dilate
+
+
+Z_shape, W_shape, stride, padding = ( (1, 5, 5, 1), (3, 3, 1, 1), 2, 0 ) # weiz 2024-10-01, this test only pass dilatefilter but not dilate
+Z_shape, W_shape, stride, padding = ( (1, 6, 6, 1), (3, 3, 1, 1), 2, 0 ) # weiz 2024-10-01, this test pass dilate but not dilatefilter
+# it appears, when (H-K)%stride==0, it will pass dilatefilter and not dilate; when (H-K)%stride, it will pass dilate but not dilatefilter
+# this seems to be only true when stride=2
+
+# !!! this case will not pass either dilate nor dilatefilter
+Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 0 )
+# this case will not pass either dilate nor dilatefilter
+
+
+#    ( (3, 14, 14, 8), (3, 3, 8, 16), 2, 1 ),
+#    ( (3, 16, 16, 8), (3, 3, 8, 16), 2, 2 ),
+#    ( (3, 16, 16, 8), (3, 3, 8, 14), 2, 0 ),
+#    ( (3, 16, 16, 2), (3, 3, 2, 14), 2, 0 ),
 backward = True
 device = ndl.cpu()
 weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
