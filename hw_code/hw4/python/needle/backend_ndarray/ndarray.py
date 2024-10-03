@@ -688,7 +688,7 @@ class NDArray:
         result.fill(0)
         dst_index_slice_list = []
         for idx, pad_axis in enumerate(axes):
-            dst_index_slice_list.append(slice(pad_axis[0],self.shape[idx]+pad_axis[1],1))
+            dst_index_slice_list.append(slice(pad_axis[0],self.shape[idx]+pad_axis[0],1)) # weiz 2024-10-02 bug fix, i had self.shape[idx]+pad_axis[1] before, test cases only test when pad_axis[0]==pad_axis[1], that is why i passed
         result[tuple(dst_index_slice_list)] = self
         #result[tuple(dst_index_slice_list)] = self[:] # weiz 2024-07-13, I could have just use result[tuple(dst_index_slice_list)] = self, but i just want to show that 
                                                     # because I have added some code in __getitem__() to make things like [:],  [1] work with variable dimensions, this work too
