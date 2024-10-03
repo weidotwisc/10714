@@ -450,6 +450,7 @@ def weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
         err2 = np.linalg.norm(Wtch.grad.numpy() - W.grad.numpy())
     err3 = np.linalg.norm(out2.detach().numpy() - y2.numpy())
     if backward:
+        print(err1, err2)
         assert err1 < 1e-2, "input grads match"
         assert err2 < 1e-2, "weight grads match"
     assert err3 < 1e-1, "outputs match %s, %s" % (y2, out2)
@@ -473,18 +474,23 @@ Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 0 )
 # this case will not pass either dilate nor dilatefilter
 
 # weiz 2024-10-02 as long as (H-K)%stride==0, dilatefilter shall pass, notice H can also be padded
-Z_shape, W_shape, stride, padding = ( (1, 9, 9, 1), (3, 3, 1, 1), 3, 0 )
-Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 1 )
-Z_shape, W_shape, stride, padding = ( (1, 255, 255, 1), (3, 3, 1, 1), 2, 0 )
-Z_shape, W_shape, stride, padding = ( (1, 255, 255, 1), (3, 3, 1, 1), 2, 1 )
-Z_shape, W_shape, stride, padding = ( (3, 15, 15, 8), (3, 3, 8, 16), 2, 0 )
+#Z_shape, W_shape, stride, padding = ( (1, 9, 9, 1), (3, 3, 1, 1), 3, 0 )
+#Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 1 )
+#Z_shape, W_shape, stride, padding = ( (1, 255, 255, 1), (3, 3, 1, 1), 2, 0 )
+#Z_shape, W_shape, stride, padding = ( (1, 255, 255, 1), (3, 3, 1, 1), 2, 1 )
+#Z_shape, W_shape, stride, padding = ( (3, 15, 15, 8), (3, 3, 8, 16), 2, 0 )
 # weiz 2024-10-02 all the above cases can pass dilatefilter , because (H+2p-K)%stride==0
 
-
+#    ( (3, 14, 14, 8), (3, 3, 8, 16), 2, 0 )
 #    ( (3, 14, 14, 8), (3, 3, 8, 16), 2, 1 ),
 #    ( (3, 16, 16, 8), (3, 3, 8, 16), 2, 2 ),
 #    ( (3, 16, 16, 8), (3, 3, 8, 14), 2, 0 ),
 #    ( (3, 16, 16, 2), (3, 3, 2, 14), 2, 0 ),
+
+Z_shape, W_shape, stride, padding =  ( (3, 14, 14, 8), (3, 3, 8, 16), 2, 1 )
+Z_shape, W_shape, stride, padding = ( (3, 16, 16, 8), (3, 3, 8, 16), 2, 2 )
+Z_shape, W_shape, stride, padding = ( (1, 16, 16, 1), (3, 3, 1, 1), 2, 2 )
+Z_shape, W_shape, stride, padding =  ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 1 )
 backward = True
 device = ndl.cpu()
 weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
