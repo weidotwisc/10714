@@ -645,14 +645,14 @@ class Conv(TensorOp):
         F = node.inputs[1]
         K,_,_,_ = F.shape
         # weiz 2024-10-02 handle stride case
-        if(self.stride > 1):
-            N,H,W,C_in = X.shape
-            if((H-K)%self.stride !=0 ):
-                assert((W-K)%self.stride !=0) # weiz we assume image is always a square, and kernel is always a square
-                H_effective = ((H-K)//self.stride)* self.stride + K
-                W_effective = ((W-K)//self.stride)* self.stride + K
-                X_data_effective = X.cached_data[:,0:H_effective, 0:W_effective,:]
-                X = Tensor.make_const(X_data_effective, requires_grad=False) # weiz: TODO: i am not sure what the impact of requires_grad=False for Hessian is yet!!!
+        # if(self.stride > 1):
+        #     N,H,W,C_in = X.shape
+        #     if((H-K)%self.stride !=0 ):
+        #         assert((W-K)%self.stride !=0) # weiz we assume image is always a square, and kernel is always a square
+        #         H_effective = ((H-K)//self.stride)* self.stride + K
+        #         W_effective = ((W-K)//self.stride)* self.stride + K
+        #         X_data_effective = X.cached_data[:,0:H_effective, 0:W_effective,:]
+        #         X = Tensor.make_const(X_data_effective, requires_grad=False) # weiz: TODO: i am not sure what the impact of requires_grad=False for Hessian is yet!!!
         # weiz 2024-10-02 handle stride case
 
         X_perm = permute(X, (3,1,2,0))
@@ -664,16 +664,15 @@ class Conv(TensorOp):
         F_flip = flip(F, (0,1)) # flip KK axes
         F_flip_perm = transpose(F_flip) # transpose is the shortcut to permute the last two axes
         
-        x_grad = conv(out_grad, F_flip_perm, padding=K-self.padding-1)
+        x_grad = conv(out_grad, F_flip_perm, padding=K-self.padding-1) # when padding is no smaller than kernel, it will become a problem, weiz 2024-10-03
         # weiz 2024-10-02 handle stride case
-        if(self.stride > 1):
-            #N,H,W,C_in = X.shape
-            if((H-K)%self.stride !=0 ):
-                assert((W-K)%self.stride !=0) # weiz we assume image is always a square, and kernel is always a square
-                _,H_x_grad,W_x_grad,_ = x_grad.shape
-                x_grad_cached_data = x_grad.realize_cached_data()
-                x_grad_padded_ndarray = x_grad_cached_data.pad( ((0,0), (0, H-H_x_grad), (0, W-W_x_grad), (0,0)) )
-                x_grad = Tensor.make_const(x_grad_padded_ndarray, requires_grad=False) # weiz: TODO: i am not sure what the impact of requires_grad=False for Hessian is yet!!!
+        # if(self.stride > 1):
+        #     if((H-K)%self.stride !=0 ):
+        #         assert((W-K)%self.stride !=0) # weiz we assume image is always a square, and kernel is always a square
+        #         _,H_x_grad,W_x_grad,_ = x_grad.shape
+        #         x_grad_cached_data = x_grad.realize_cached_data()
+        #         x_grad_padded_ndarray = x_grad_cached_data.pad( ((0,0), (0, H-H_x_grad), (0, W-W_x_grad), (0,0)) )
+        #         x_grad = Tensor.make_const(x_grad_padded_ndarray, requires_grad=False) # weiz: TODO: i am not sure what the impact of requires_grad=False for Hessian is yet!!!
         # weiz 2024-10-02 handle stride case
         return x_grad, f_grad
         ### END YOUR SOLUTION
