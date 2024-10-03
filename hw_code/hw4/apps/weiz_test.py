@@ -487,10 +487,11 @@ Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 0 )
 #    ( (3, 16, 16, 8), (3, 3, 8, 14), 2, 0 ),
 #    ( (3, 16, 16, 2), (3, 3, 2, 14), 2, 0 ),
 
-Z_shape, W_shape, stride, padding =  ( (3, 14, 14, 8), (3, 3, 8, 16), 2, 1 )
-Z_shape, W_shape, stride, padding = ( (3, 16, 16, 8), (3, 3, 8, 16), 2, 2 )
-Z_shape, W_shape, stride, padding = ( (1, 16, 16, 1), (3, 3, 1, 1), 2, 2 )
-Z_shape, W_shape, stride, padding =  ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 1 )
+#Z_shape, W_shape, stride, padding =  ( (3, 14, 14, 8), (3, 3, 8, 16), 2, 1 )
+#Z_shape, W_shape, stride, padding = ( (3, 16, 16, 8), (3, 3, 8, 16), 2, 2 )
+#Z_shape, W_shape, stride, padding = ( (1, 16, 16, 1), (3, 3, 1, 1), 2, 2 )
+Z_shape, W_shape, stride, padding =  ( (1, 15, 15, 1), (3, 3, 1, 1), 2, 2 )
+#Z_shape, W_shape, stride, padding =  ( (1, 15, 15, 1), (3, 3, 1, 1), 2, 3 ) # padding is as large as kernel, not going to work weiz 2024-10-03
 backward = True
 device = ndl.cpu()
 weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
