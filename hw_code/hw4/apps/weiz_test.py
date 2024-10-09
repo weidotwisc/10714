@@ -497,7 +497,7 @@ Z_shape, W_shape, stride, padding =  ( (1, 16, 16, 1), (3, 3, 1, 1), 3, 0 ) # in
 
 # weiz 2024-10-08 starting to implement the SnuggyConv
 Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 0 )
-Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 1 )
-backward = False
+#Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 1 )
+backward = True
 device = ndl.cpu()
 weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
