@@ -686,8 +686,10 @@ class SnuggyConv(TensorOp):
         self.padding = padding
         self.H_pad_bottom = 0
         self.W_pad_right = 0
+        self.effective_A = None # the real A during convolution
 
     # weiz 2024-07-30, A is Z, B is W
+    # A: NDArray, B: NDArray
     def compute(self, A, B):
         ### BEGIN YOUR SOLUTION
         #  pad A first 
@@ -700,14 +702,30 @@ class SnuggyConv(TensorOp):
         assert( (H+2*self.padding-K) % self.stride !=0 )
         assert( (W+2*self.padding-K) % self.stride !=0 )
         # weiz 2024-10-08 TODO: handle the H_pad_bottom < 0 and W_pad_right < 0 cases
-        assert(H_pad_bottom < 0 and W_pad_right <0) # TODO
+        
         H_pad_bottom =  (H+2*self.padding-K) // self.stride * self.stride - H - self.padding + K 
         W_pad_right =  (W+2*self.padding-K) // self.stride * self.stride - W - self.padding + K 
         self.H_pad_bottom = H_pad_bottom
         self.W_pad_right = W_pad_right
 
-        A = A.pad( ((0,0), (self.padding, self.H_pad_bottom), (self.padding, self.W_pad_right), (0,0)) )
-        print("A_pad.shape: ", A.shape)
+        if(H_pad_bottom >=0 and W_pad_right >=0):
+            A = A.pad( ((0,0), (self.padding, self.H_pad_bottom), (self.padding, self.W_pad_right), (0,0)) )
+            self.H_selector = slice(self.padding, self.padding + H)
+            self.W_selector = slice(self.padding, self.padding + W)
+            self.real_H_grad = H 
+            self.real_W_grad = W
+        else:
+            assert(self.padding == 0) # weiz 2024-10-09, just weird if they decide to pad and don't pad it properly
+            assert(H_pad_bottom < 0 and W_pad_right <0) # weiz 2024-10-09 just make sure we get two negative paddings, otherwise it is a weird setup
+            A=A[:,0:H_pad_bottom, 0:W_pad_right,:]
+            self.H_selector = slice(self.padding,None)
+            self.W_selector = slice(self.padding, None)
+            self.real_H_grad = H + self.padding + H_pad_bottom
+            self.real_W_grad = W + self.padding + W_pad_right
+            
+
+        print("effective A.shape: ", A.shape)
+        self.effective_A = A
         N,H,W, C_in = A.shape
         Ns,Hs,Ws,C_ins = A.strides
         K, _, _, C_out = B.shape
@@ -728,7 +746,7 @@ class SnuggyConv(TensorOp):
                     # weiz 2024-09-29 I didn't do B.compact() before so when B(aka filter) is reshaped, needle complains
         out = Z @ W_kernel
         out = out.reshape((N, H_output, W_output, C_out))
-        return out
+        return out # weiz 2024-10-09 out:NDArray conv->__call__->make_from_op()->tensor.realize_cached_data()->compute() returns NDArray
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -741,6 +759,7 @@ class SnuggyConv(TensorOp):
         # weiz 2024-09-28 
         # step 1 calculate gradients w.r.t filter F
         X = node.inputs[0]
+        X = Tensor.make_const(self.effective_A) # weiz 2024-10-09 to get effective A
         #print("X.shape:", X.shape)
         
         F = node.inputs[1]
@@ -758,14 +777,21 @@ class SnuggyConv(TensorOp):
 
         X_perm = permute(X, (3,1,2,0))
         out_grad_perm = permute(out_grad, (1,2,0,3))   
-        f_grad_perm = conv(X_perm, out_grad_perm, padding=self.padding)    
+        #f_grad_perm = conv(X_perm, out_grad_perm, padding=self.padding)    
+        f_grad_perm = conv(X_perm, out_grad_perm, padding=0)  # weiz 2024-10-09 usef effective A then we don't need any padding  
         f_grad = permute(f_grad_perm, (1,2,0,3))
         
         # step 2 calculate gradients w.r.t input X
         F_flip = flip(F, (0,1)) # flip KK axes
         F_flip_perm = transpose(F_flip) # transpose is the shortcut to permute the last two axes
         
-        x_grad = conv(out_grad, F_flip_perm, padding=K-self.padding-1) # when padding is no smaller than kernel, it will become a problem, weiz 2024-10-03
+        #x_grad = conv(out_grad, F_flip_perm, padding=K-self.padding-1) # when padding is no smaller than kernel, it will become a problem, weiz 2024-10-03
+        x_grad = conv(out_grad, F_flip_perm, padding=K-1) # weiz 2024-10-09 when using Snuggy, don't need any padding, we just need align the x_grad in the last step
+
+        real_x_grad_nd_array = NDArray.make(shape=tuple(node.inputs[0].shape), device=node.inputs[0].cached_data.device)
+        real_x_grad_nd_array.fill(0)
+        real_x_grad_nd_array[:,0:self.real_H_grad, 0:self.real_W_grad, :] = x_grad.cached_data[:,self.H_selector,self.W_selector,:]
+        x_grad = Tensor.make_const(real_x_grad_nd_array)
         # weiz 2024-10-02 handle stride case
         # if(self.stride > 1):
         #     if((H-K)%self.stride !=0 ):
