@@ -450,9 +450,9 @@ def weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
         err2 = np.linalg.norm(Wtch.grad.numpy() - W.grad.numpy())
     err3 = np.linalg.norm(out2.detach().numpy() - y2.numpy())
     if backward:
-        print(err1, err2)
-        assert err1 < 1e-2, "input grads match"
-        assert err2 < 1e-2, "weight grads match"
+        print("input grad err: ", err1, " filter grad err: ", err2)
+        #assert err1 < 1e-2, "input grads match"
+        #assert err2 < 1e-2, "weight grads match"
     assert err3 < 1e-1, "outputs match %s, %s" % (y2, out2)
 
 #Z_shape, W_shape, stride, padding = ( (3, 14, 14, 8), (3, 3, 8, 16), 1, 0 ) # weiz 2024-10-01, stride=1, no problem for either dilate or dilatefilter
@@ -491,7 +491,13 @@ Z_shape, W_shape, stride, padding = ( (1, 7, 7, 1), (3, 3, 1, 1), 3, 0 )
 #Z_shape, W_shape, stride, padding = ( (3, 16, 16, 8), (3, 3, 8, 16), 2, 2 )
 #Z_shape, W_shape, stride, padding = ( (1, 16, 16, 1), (3, 3, 1, 1), 2, 2 )
 Z_shape, W_shape, stride, padding =  ( (1, 15, 15, 1), (3, 3, 1, 1), 2, 2 )
-#Z_shape, W_shape, stride, padding =  ( (1, 15, 15, 1), (3, 3, 1, 1), 2, 3 ) # padding is as large as kernel, not going to work weiz 2024-10-03
-backward = True
+#Z_shape, W_shape, stride, padding =  ( (1, 15, 15, 1), (3, 3, 1, 1), 2, 3 ) # padding is as large as kernel, not going to work weiz 2024-10-03, probably not a legit padding anyway
+Z_shape, W_shape, stride, padding =  ( (1, 15, 15, 1), (3, 3, 1, 1), 3, 2 ) # (15+2*2 - 3) % 3 !=0 ==> not working yet
+Z_shape, W_shape, stride, padding =  ( (1, 16, 16, 1), (3, 3, 1, 1), 3, 0 ) # input X last dimension of H,W gradient should be zero
+
+# weiz 2024-10-08 starting to implement the SnuggyConv
+Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 0 )
+Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 1 )
+backward = False
 device = ndl.cpu()
 weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)

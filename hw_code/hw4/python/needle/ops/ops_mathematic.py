@@ -617,6 +617,107 @@ class Conv(TensorOp):
         
         
         # when there is convolution striding
+        assert( (H-K) % self.stride == 0) # weiz 2024-10-08 just make sure it is perfectly padded for striding. other cases are handled by SnuggyConv operator
+        assert( (W-K) % self.stride == 0) # weiz 2024-10-08 just make sure it is perfectly padded for striding. other cases are handled by SnuggyConv operator
+        H_output = ((H-K) // self.stride) + 1 # weiz bug fix 2024-09-16, previously it was (H-K+1) // self.stride, H=5,K=3,stride=2 would fail
+        W_output = ((W-K) // self.stride) + 1 # weiz bug fix 2024-09-16, previously it was (W-K+1) // self.stride, W=5,K=3,stride=2 would fail
+        Z_shape = (N, H_output, W_output, K, K, C_in) 
+        Z_strides = (Ns,Hs * self.stride,Ws * self.stride,Hs,Ws, C_ins)
+        Z = A.as_strided(shape=Z_shape, strides=Z_strides).compact()
+        Z = Z.reshape(( N*H_output*W_output, inner_dim ))
+        W_kernel = B.compact().reshape((inner_dim, C_out)) # weiz 2024-09-08, bug fix , I was using W in LHS, and W is unfortunately also used as in shape calculation two lines below
+                    # weiz 2024-09-29 I didn't do B.compact() before so when B(aka filter) is reshaped, needle complains
+        out = Z @ W_kernel
+        out = out.reshape((N, H_output, W_output, C_out))
+        return out
+        ### END YOUR SOLUTION
+
+    def gradient(self, out_grad, node):
+        ### BEGIN YOUR SOLUTION
+        
+        # weiz 2024-09-29 handle stride > 1
+        #out_grad = dilate(out_grad, (1,2), self.stride-1)
+        out_grad = filterdilate(out_grad, (1,2), self.stride-1)
+
+        # weiz 2024-09-28 
+        # step 1 calculate gradients w.r.t filter F
+        X = node.inputs[0]
+        #print("X.shape:", X.shape)
+        
+        F = node.inputs[1]
+        K,_,_,_ = F.shape
+        # weiz 2024-10-02 handle stride case
+        # if(self.stride > 1):
+        #     N,H,W,C_in = X.shape
+        #     if((H-K)%self.stride !=0 ):
+        #         assert((W-K)%self.stride !=0) # weiz we assume image is always a square, and kernel is always a square
+        #         H_effective = ((H-K)//self.stride)* self.stride + K
+        #         W_effective = ((W-K)//self.stride)* self.stride + K
+        #         X_data_effective = X.cached_data[:,0:H_effective, 0:W_effective,:]
+        #         X = Tensor.make_const(X_data_effective, requires_grad=False) # weiz: TODO: i am not sure what the impact of requires_grad=False for Hessian is yet!!!
+        # weiz 2024-10-02 handle stride case
+
+        X_perm = permute(X, (3,1,2,0))
+        out_grad_perm = permute(out_grad, (1,2,0,3))   
+        f_grad_perm = conv(X_perm, out_grad_perm, padding=self.padding)    
+        f_grad = permute(f_grad_perm, (1,2,0,3))
+        
+        # step 2 calculate gradients w.r.t input X
+        F_flip = flip(F, (0,1)) # flip KK axes
+        F_flip_perm = transpose(F_flip) # transpose is the shortcut to permute the last two axes
+        
+        x_grad = conv(out_grad, F_flip_perm, padding=K-self.padding-1) # when padding is no smaller than kernel, it will become a problem, weiz 2024-10-03
+        # weiz 2024-10-02 handle stride case
+        # if(self.stride > 1):
+        #     if((H-K)%self.stride !=0 ):
+        #         assert((W-K)%self.stride !=0) # weiz we assume image is always a square, and kernel is always a square
+        #         _,H_x_grad,W_x_grad,_ = x_grad.shape
+        #         x_grad_cached_data = x_grad.realize_cached_data()
+        #         x_grad_padded_ndarray = x_grad_cached_data.pad( ((0,0), (0, H-H_x_grad), (0, W-W_x_grad), (0,0)) )
+        #         x_grad = Tensor.make_const(x_grad_padded_ndarray, requires_grad=False) # weiz: TODO: i am not sure what the impact of requires_grad=False for Hessian is yet!!!
+        # weiz 2024-10-02 handle stride case
+        return x_grad, f_grad
+        ### END YOUR SOLUTION
+
+
+class SnuggyConv(TensorOp):
+    def __init__(self, stride: Optional[int] = 1, padding: Optional[int] = 0):
+        self.stride = stride
+        self.padding = padding
+        self.H_pad_bottom = 0
+        self.W_pad_right = 0
+
+    # weiz 2024-07-30, A is Z, B is W
+    def compute(self, A, B):
+        ### BEGIN YOUR SOLUTION
+        #  pad A first 
+        print("A.shape: ", A.shape)
+        
+        N,H,W, C_in = A.shape
+        Ns,Hs,Ws,C_ins = A.strides
+        K, _, _, C_out = B.shape
+        inner_dim = K * K* C_in
+        assert( (H+2*self.padding-K) % self.stride !=0 )
+        assert( (W+2*self.padding-K) % self.stride !=0 )
+        # weiz 2024-10-08 TODO: handle the H_pad_bottom < 0 and W_pad_right < 0 cases
+        assert(H_pad_bottom < 0 and W_pad_right <0) # TODO
+        H_pad_bottom =  (H+2*self.padding-K) // self.stride * self.stride - H - self.padding + K 
+        W_pad_right =  (W+2*self.padding-K) // self.stride * self.stride - W - self.padding + K 
+        self.H_pad_bottom = H_pad_bottom
+        self.W_pad_right = W_pad_right
+
+        A = A.pad( ((0,0), (self.padding, self.H_pad_bottom), (self.padding, self.W_pad_right), (0,0)) )
+        print("A_pad.shape: ", A.shape)
+        N,H,W, C_in = A.shape
+        Ns,Hs,Ws,C_ins = A.strides
+        K, _, _, C_out = B.shape
+        inner_dim = K * K* C_in
+
+        assert((H-K)%self.stride == 0)
+        assert((W-K)%self.stride == 0)
+        
+        
+        # when there is convolution striding
         H_output = ((H-K) // self.stride) + 1 # weiz bug fix 2024-09-16, previously it was (H-K+1) // self.stride, H=5,K=3,stride=2 would fail
         W_output = ((W-K) // self.stride) + 1 # weiz bug fix 2024-09-16, previously it was (W-K+1) // self.stride, W=5,K=3,stride=2 would fail
         Z_shape = (N, H_output, W_output, K, K, C_in) 
@@ -679,4 +780,17 @@ class Conv(TensorOp):
 
 
 def conv(a, b, stride=1, padding=1):
-    return Conv(stride, padding)(a, b)
+    if(stride == 1):
+        return Conv(stride, padding)(a, b)
+    else:
+        N,H,W,C = a.shape
+        K,_,I,O = b.shape
+        H=H+2*padding
+        W=W+2*padding
+        if((H-K) % stride==0):
+            assert((W-K)%stride ==0) # weiz 2024-10-08 I assume it is a square image
+            return Conv(stride, padding)(a, b)
+        else:
+            return SnuggyConv(stride, padding)(a,b)
+        
+    
