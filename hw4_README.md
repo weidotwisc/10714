@@ -23,13 +23,14 @@ make # MUST DO so that all the backends are properly built
 source ../dlsys.profile
 export NEEDLE_BACKEND=nd
 export PYTHONPATH=/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/python
-python3 -m pytest -l -v -k "nd_backend"
-python3 -m pytest -l -v -k "test_cifar10"
-python3 -m pytest -l -v -k "pad_forward"
-python3 -m pytest -l -v -k "flip"
-python3 -m pytest -l -v -k "dilate"
-python3 -m pytest  -l -v -k "op_conv and forward"
-python3 -m pytest -l -v -k "op_conv and backward"
+python3 -m pytest ./tests -l -v -k "nd_backend"
+python3 -m pytest ./tests -l -v -k "test_cifar10"
+python3 -m pytest ./tests -l -v -k "pad_forward"
+python3 -m pytest ./tests -l -v -k "flip"
+python3 -m pytest ./tests -l -v -k "dilate"
+python3 -m pytest  ./tests -l -v -k "op_conv and forward"
+python3 -m pytest ./tests -l -v -k "op_conv and backward"
+python3 -m pytest ./tests  -l -v -k "kaiming_uniform"
 ```
 
 # Step3 test all
