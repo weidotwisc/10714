@@ -13,4 +13,5 @@ python3 -m pytest ./tests -l -v -k "pad_forward"
 python3 -m pytest ./tests -l -v -k "flip"
 python3 -m pytest ./tests -l -v -k "dilate"
 python3 -m pytest ./tests -l -v -k "op_conv and forward" # weiz 2024-09-16
-python3 -m pytest ./tests  -l -v -k "op_conv and backward" # weiz 2024-09-29
+python3 -m pytest ./tests  -l -v -k "op_conv and backward" # weiz first all passed on 2024-09-29, because Zico's test cases cover little. Then reall passed on 2024-10-09, with proper dilate filter and more test cases by my own.
+python3 -m pytest ./tests  -l -v -k "kaiming_uniform" # weiz 2024-10-09
