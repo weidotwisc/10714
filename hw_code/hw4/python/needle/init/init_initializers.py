@@ -18,7 +18,7 @@ def xavier_normal(fan_in, fan_out, gain=1.0, **kwargs):
     ### END YOUR SOLUTION
 
 
-
+# weiz 2024-10-09 kaiming_uniform is the only function that we need to immplement in this howmework, all the other functions are copied from hw2
 def kaiming_uniform(fan_in, fan_out, shape=None, nonlinearity="relu", **kwargs):
     assert nonlinearity == "relu", "Only relu supported currently"
     ### BEGIN YOUR SOLUTION
