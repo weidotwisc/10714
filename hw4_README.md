@@ -31,6 +31,8 @@ python3 -m pytest ./tests -l -v -k "dilate"
 python3 -m pytest  ./tests -l -v -k "op_conv and forward"
 python3 -m pytest ./tests -l -v -k "op_conv and backward"
 python3 -m pytest ./tests  -l -v -k "kaiming_uniform"
+python3 -m pytest ./tests  -l -v -k "nn_conv_forward"
+python3 -m pytest ./tests  -l -v -k "nn_conv_backward
 ```
 
 # Step3 test all
