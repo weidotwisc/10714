@@ -46,7 +46,7 @@ class Conv(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        # weiz 2024-10-15, x is of NCHW
+        # weiz 2024-10-15, x is of NCHW, which is the PyT format, and in Conv ops, we use NHWC, which is the TF format
         n,cin,h,w = x.shape
         x_nhwc = ops.permute(x, (0,2,3,1))
         assert((self.kernel_size-1) % 2 == 0) # in order to make sure when stride=1, we get the same input and output dimension

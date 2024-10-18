@@ -598,9 +598,9 @@ class Conv(TensorOp):
     def compute(self, A, B):
         ### BEGIN YOUR SOLUTION
         #  pad A first 
-        print("A.shape: ", A.shape)
+        print("[Conv] A.shape: ", A.shape)
         A = A.pad( ((0,0), (self.padding, self.padding), (self.padding, self.padding), (0,0)) )
-        print("A_pad.shape: ", A.shape)
+        print("[Conv] A_pad.shape: ", A.shape)
         N,H,W, C_in = A.shape
         Ns,Hs,Ws,C_ins = A.strides
         K, _, _, C_out = B.shape
@@ -693,7 +693,7 @@ class SnuggyConv(TensorOp):
     def compute(self, A, B):
         ### BEGIN YOUR SOLUTION
         #  pad A first 
-        print("A.shape: ", A.shape)
+        print("[SnuggyConv] A.shape: ", A.shape)
         
         N,H,W, C_in = A.shape
         Ns,Hs,Ws,C_ins = A.strides
@@ -724,7 +724,7 @@ class SnuggyConv(TensorOp):
             self.real_W_grad = W + self.padding + W_pad_right
             
 
-        print("effective A.shape: ", A.shape)
+        print("[SnuggyConv] effective A.shape: ", A.shape)
         self.effective_A = A
         N,H,W, C_in = A.shape
         Ns,Hs,Ws,C_ins = A.strides
