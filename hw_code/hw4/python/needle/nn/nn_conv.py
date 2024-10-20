@@ -94,8 +94,8 @@ class ResNetBasicBlock(Module):
             in_channels, out_channels, kernel_size, stride = conv_params
             convbn = ConvBN(in_channels, out_channels, kernel_size, stride = stride, bias=bias, device=device,dtype=dtype)
             convbn_list.append(convbn)
-        self.main_path = Sequential(*convbn_list)
-        self.residual_block = Residual(self.main_path)
+        main_path = Sequential(*convbn_list)
+        self.residual_block = Residual(main_path)
 
     def forward(self, x:Tensor) -> Tensor:
         return self.residual_block(x)
