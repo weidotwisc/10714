@@ -1,10 +1,11 @@
 """The module.
 """
+from functools import reduce
 from typing import List, Callable, Any
 from needle.autograd import Tensor
 from needle import ops
 from needle import broadcast_to, power_scalar, divide, reshape
-import needle.init as init
+from needle.init import *
 import numpy as np
 from needle.init import one_hot # weiz 2024-01-28 one-hot encoding for SoftmaxLoss calculation
 from needle.ops import summation # weiz 2024-01-28 import summation for SoftmaxLoss calculation

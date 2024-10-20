@@ -13,6 +13,7 @@ from functools import reduce
 import operator
 import timeit
 import statistics
+import os
 
 #print_ndarray_funcs()
 def backward_check(f, *args, **kwargs):
@@ -500,4 +501,53 @@ Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 0 )
 #Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 1 )
 backward = True
 device = ndl.cpu()
-weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
+#weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
+
+# weiz 2024-10-20
+
+def test_train_cifar10(device):
+    np.random.seed(0)
+    DLSYS_HOME = os.getenv("DLSYS_HOME")
+    dataset = ndl.data.CIFAR10Dataset(os.path.join(DLSYS_HOME, "hw4", "./data/cifar-10-batches-py"), train=True)
+    dataloader = ndl.data.DataLoader(\
+             dataset=dataset,
+             batch_size=128,
+             shuffle=False
+             # collate_fn=ndl.data.collate_ndarray,
+             # drop_last=False,
+             # device=device,
+             # dtype="float32"
+             )
+    for x in dataloader:
+        print(x[0].shape) # x is a size 2 tuple (X,y)
+    #from apps.models import ResNet9
+    #np.random.seed(0)
+    #model = ResNet9(device=device, dtype="float32")
+    #out = one_iter_of_cifar10_training(dataloader, model, opt=ndl.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001), device=device)
+    #assert np.linalg.norm(np.array(list(out), dtype=object) - np.array([0.09375, 3.5892258])) < 1e-2
+
+
+#test_train_cifar10(device)
+
+
+def test_resnet9(device):
+    def num_params(model):
+        res = np.sum([np.prod(x.shape) for x in model.parameters()])
+        return res
+
+    from models import ResNet9
+    np.random.seed(0)
+    model = ResNet9(device=device)
+
+    assert num_params(model) == 431946
+
+    _A = np.random.randn(2, 3, 32, 32)
+    A = ndl.Tensor(_A, device=device)
+    y = model(A)
+
+    assert np.linalg.norm(np.array([[-1.8912625 ,  0.64833605,  1.9400386 ,  1.1435282 ,  1.89777   ,
+         2.9039745 , -0.10433993,  0.35458302, -0.5684191 ,  2.6178317 ],
+       [-0.2905612 , -0.4147861 ,  0.90268034,  0.46530387,  1.3335679 ,
+         1.8534894 , -0.1867125 , -2.4298222 , -0.5344223 ,  4.362149  ]]) - y.numpy()) < 1e-2
+    
+test_resnet9(device)
