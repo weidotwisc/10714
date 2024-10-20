@@ -60,6 +60,11 @@ class Module:
         """Return the list of parameters in the module."""
         return _unpack_params(self.__dict__)
 
+    # weiz 2024-10-20 add params coungting functionality
+    def num_params(self):
+        res = np.sum([np.prod(x.shape) for x in self.parameters()])
+        return res
+
     def _children(self) -> List["Module"]:
         return _child_modules(self.__dict__)
 
