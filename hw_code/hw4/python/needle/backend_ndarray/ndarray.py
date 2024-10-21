@@ -247,6 +247,12 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
+        # weiz 2024-10-21 to support reshape(-1) syntax
+        if(new_shape == -1):
+            total_elements = prod(self._shape)
+            new_shape = (total_elements,)
+        # end of weiz 2024-10-21 to support reshape(-1) syntax 
+         
         if prod(new_shape) != prod(self._shape):
             raise ValueError("Product of current shape is not equal to the product!")
         if not self.is_compact():
