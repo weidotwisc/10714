@@ -501,6 +501,7 @@ Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 0 )
 #Z_shape, W_shape, stride, padding = ( (1, 14, 14, 1), (3, 3, 1, 1), 2, 1 )
 backward = True
 device = ndl.cpu()
+device = ndl.cuda()
 #weiz_test_op_conv(Z_shape, W_shape, stride, padding, backward, device)
 
 # weiz 2024-10-20
