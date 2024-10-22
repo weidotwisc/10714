@@ -17,3 +17,4 @@ python3 -m pytest ./tests  -l -v -k "op_conv and backward" # weiz first all pass
 python3 -m pytest ./tests  -l -v -k "kaiming_uniform" # weiz 2024-10-09
 python3 -m pytest ./tests  -l -v -k "nn_conv_forward" # weiz 2024-10-15
 python3 -m pytest ./tests  -l -v -k "nn_conv_backward" # weiz 2024-10-15
+python3 -m pytest ./tests  -l -v -k "resnet9" # weiz 2024-10-21
