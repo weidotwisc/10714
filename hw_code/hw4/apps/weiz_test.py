@@ -551,4 +551,47 @@ def test_resnet9(device):
        [-0.2905612 , -0.4147861 ,  0.90268034,  0.46530387,  1.3335679 ,
          1.8534894 , -0.1867125 , -2.4298222 , -0.5344223 ,  4.362149  ]]) - y.numpy()) < 1e-2
     
-test_resnet9(device)
+#test_resnet9(device)
+
+
+def one_iter_of_cifar10_training(dataloader, model, niter=1, loss_fn=ndl.nn.SoftmaxLoss(), opt=None, device=None):
+    np.random.seed(4)
+    model.train()
+    correct, total_loss = 0, 0
+    i = 1
+    for batch in dataloader:
+        opt.reset_grad()
+        X, y = batch
+        X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
+        out = model(X)
+        correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+        loss = loss_fn(out, y)
+        total_loss += loss.data.numpy() * y.shape[0]
+        loss.backward()
+        opt.step()
+        if i >= niter:
+            break
+        i += 1
+    return correct/(y.shape[0]*niter), total_loss/(y.shape[0]*niter)
+
+def test_train_cifar10(device):
+    np.random.seed(0)
+    #dataset = ndl.data.CIFAR10Dataset("./data/cifar-10-batches-py", train=True)
+    DLSYS_HOME = os.getenv("DLSYS_HOME")
+    dataset = ndl.data.CIFAR10Dataset(os.path.join(DLSYS_HOME, "hw4", "./data/cifar-10-batches-py"), train=True)
+    dataloader = ndl.data.DataLoader(\
+             dataset=dataset,
+             batch_size=128,
+             shuffle=False
+             # collate_fn=ndl.data.collate_ndarray,
+             # drop_last=False,
+             # device=device,
+             # dtype="float32"
+             )
+    from models import ResNet9
+    np.random.seed(0)
+    model = ResNet9(device=device, dtype="float32")
+    out = one_iter_of_cifar10_training(dataloader, model, opt=ndl.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001), device=device)
+    assert np.linalg.norm(np.array(list(out), dtype=object) - np.array([0.09375, 3.5892258])) < 1e-2
+
+test_train_cifar10(device)

@@ -148,7 +148,7 @@ class SoftmaxLoss(Module):
         num_of_cls = logits.shape[1]
         # target_logits = logits[array_api.arange(num_of_samples), y] # use advanced indexing in numpy not sure if ndl implements this
         LSE = ops.logsumexp(logits, axes=1)
-        one_hot_encoding = one_hot(num_of_cls, y)
+        one_hot_encoding = one_hot(num_of_cls, y, requires_grad=False, device=logits.device, dtype=logits.dtype) # weiz 2024-10-21 add device, and dtype so that we won''t have type mismatch
         target_logits = summation(logits * one_hot_encoding, axes=1)
         loss_per_sample_vec = LSE - target_logits
         result_sum = summation(loss_per_sample_vec)
