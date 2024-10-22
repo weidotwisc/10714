@@ -32,7 +32,8 @@ python3 -m pytest  ./tests -l -v -k "op_conv and forward"
 python3 -m pytest ./tests -l -v -k "op_conv and backward"
 python3 -m pytest ./tests  -l -v -k "kaiming_uniform"
 python3 -m pytest ./tests  -l -v -k "nn_conv_forward"
-python3 -m pytest ./tests  -l -v -k "nn_conv_backward
+python3 -m pytest ./tests  -l -v -k "nn_conv_backward # weiz 2024-10-15
+python3 -m pytest ./tests  -l -v -k "resnet9" # weiz 2024-10-21
 ```
 
 # Step3 test all
