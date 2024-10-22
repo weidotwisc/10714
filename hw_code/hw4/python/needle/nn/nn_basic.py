@@ -96,8 +96,8 @@ class Linear(Module):
         self.out_features = out_features
 
         ### BEGIN YOUR SOLUTION
-        self.weight = Parameter(kaiming_uniform(in_features, out_features, requires_grad=True, dtype=dtype))
-        self.bias = Parameter(kaiming_uniform(out_features, 1, requires_grad=True, dtype=dtype).transpose()) if bias else None
+        self.weight = Parameter(kaiming_uniform(in_features, out_features, requires_grad=True, device=device, dtype=dtype))
+        self.bias = Parameter(kaiming_uniform(out_features, 1, requires_grad=True, device=device, dtype=dtype).transpose()) if bias else None
         ### END YOUR SOLUTION
 
     def forward(self, X: Tensor) -> Tensor:
@@ -165,10 +165,10 @@ class BatchNorm1d(Module):
         self.eps = eps
         self.momentum = momentum
         ### BEGIN YOUR SOLUTION
-        self.weight = Parameter(ones(1, dim), requires_grad=True) # weiz 2024-02-01, the fact that numpy array is almost a row vector when working with bcast make it okay to initialize it as an array as well
-        self.bias = Parameter(zeros(1, dim), requires_grad=True)
-        self.running_mean = zeros(dim)
-        self.running_var = ones(dim)
+        self.weight = Parameter(ones(1, dim), requires_grad=True, device=device, dtype=dtype) # weiz 2024-02-01, the fact that numpy array is almost a row vector when working with bcast make it okay to initialize it as an array as well
+        self.bias = Parameter(zeros(1, dim), requires_grad=True, device=device, dtype=dtype)
+        self.running_mean = zeros(dim, requires_grad=False, device=device, dtype=dtype)
+        self.running_var = ones(dim, requires_grad=False, device=device, dtype=dtype)
         ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
@@ -214,8 +214,8 @@ class LayerNorm1d(Module):
         self.dim = dim
         self.eps = eps
         ### BEGIN YOUR SOLUTION
-        self.weight = Parameter(ones(1, dim), requires_grad=True)
-        self.bias = Parameter(zeros(1,dim), requires_grad=True)
+        self.weight = Parameter(ones(1, dim), requires_grad=True, device=device, dtype=dtype)
+        self.bias = Parameter(zeros(1,dim), requires_grad=True, device=device, dtype=dtype)
         ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
