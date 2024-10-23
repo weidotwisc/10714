@@ -259,7 +259,9 @@ class NDArray:
             raise ValueError("The matrix is not compact!")
         #new_strides = NDArray.compact_strides(new_shape)
         new_strides = tuple([prod(new_shape[i+1:]) for i in range(len(new_shape))]) # weiz 2024-03-19 my own way calculating strides
-        return NDArray.make(new_shape, strides=new_strides, device=self._device, handle=self._handle)
+        result = NDArray.make(new_shape, strides=new_strides, device=self._device, handle=self._handle)
+        assert(result.is_compact())
+        return result
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):

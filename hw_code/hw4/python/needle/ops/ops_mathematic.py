@@ -398,10 +398,17 @@ class ReLU(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
+        
+        # weiz 2024-10-22 makeshift solution to comment out my solution and use PKU solution instead
         input_grad = node.inputs[0].realize_cached_data().copy()
         input_grad[input_grad<=0] = 0
         input_grad[input_grad>0] = 1 # at this point input_grad is NDArray, but the * in the next line make it a ndl.Tensory type ?
         return out_grad * input_grad # weiz 2024-01-02 don't forget to multiply out_grad, otherwise we didn't get the gradients w.r.t loss function!!
+        
+        #out = node.realize_cached_data()
+        #return out_grad * Tensor(out > 0, device=out_grad.device)
+        # end of weiz 2024-10-22 makeshift solution to comment out my solution and use PKU solution instead 
+
         ### END YOUR SOLUTION
 
 
