@@ -53,11 +53,17 @@ class LogSumExp(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         # step 1 reshape out_grad to original output shape
+        # weiz 2024-10-22 add the following line to make sure out_grad is compact() so that it can be reshaped. but why ?
+        #out_grad.cached_data = out_grad.cached_data.compact()
+         # end of weiz 2024-10-22 add the following line to make sure out_grad is compact() so that it can be reshaped. but why ?
         out_grad = out_grad.reshape(self.fwd_output_orig_shape)
         # step 2 bcast out_grad to original input shape
         out_grad = broadcast_to(out_grad, self.fwd_input_orig_shape)
         # step 3 element-wise multiply out_grad with grad_intermediate
         return  out_grad * self.grad_intermediate
+    
+        # weiz 2024-10-22 make sure we use Tensor instead of NDArray to multiply with out_grad
+        #return  out_grad * Tensor.make_const(self.grad_intermediate, dtype=out_grad.dtype, device=out_grad.device)
         ### END YOUR SOLUTION
 
 
