@@ -445,6 +445,10 @@ void ScalarPower(const CudaArray& a, scalar_t val, CudaArray* out) {
 	EwiseFunc(a.ptr, NULL, val, out, POW);
 }
 
+void EwisePower(const CudaArray& a, const CudaArray& b, CudaArray* out) { // weiz 2024-10-25 to pass hw1 tests
+	EwiseFunc(a.ptr, b.ptr, 0, out, POW);
+}
+
 void EwiseMaximum(const CudaArray& a, const CudaArray& b, CudaArray* out) {
 	EwiseFunc(a.ptr, b.ptr, 0, out, MAX);
 }
@@ -664,6 +668,7 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("ewise_div", EwiseDiv);
   m.def("scalar_div", ScalarDiv);
   m.def("scalar_power", ScalarPower);
+  m.def("ewise_power", EwisePower);
 
   m.def("ewise_maximum", EwiseMaximum);
   m.def("scalar_maximum", ScalarMaximum);
