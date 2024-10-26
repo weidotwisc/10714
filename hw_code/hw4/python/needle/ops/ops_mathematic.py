@@ -412,6 +412,18 @@ class ReLU(TensorOp):
         ### END YOUR SOLUTION
 
 
+class PKUReLU(TensorOp):
+    def compute(self, a):
+        ### BEGIN YOUR SOLUTION
+        return array_api.maximum(a, 0)
+        ### END YOUR SOLUTION
+
+    def gradient(self, out_grad, node):
+        ### BEGIN YOUR SOLUTION
+        out = node.realize_cached_data()
+        return out_grad * Tensor(out > 0, device=out_grad.device)
+        ### END YOUR SOLUTION
+
 def relu(a):
     return ReLU()(a)
 

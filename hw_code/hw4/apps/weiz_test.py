@@ -594,4 +594,26 @@ def test_train_cifar10(device):
     out = one_iter_of_cifar10_training(dataloader, model, opt=ndl.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001), device=device)
     assert np.linalg.norm(np.array(list(out), dtype=object) - np.array([0.09375, 3.5892258])) < 1e-2
 
-test_train_cifar10(device)
+#test_train_cifar10(device)
+
+
+### HW3 ##### 
+reduce_params = [
+    {"dims": (10,), "axis": 0},
+    {"dims": (4, 5, 6), "axis": 0},
+    {"dims": (4, 5, 6), "axis": 1},
+    {"dims": (4, 5, 6), "axis": 2},
+]
+
+def test_reduce_sum(params, device):
+    dims, axis = params["dims"], params["axis"]
+    _A = np.random.randn(*dims)
+    A = nd.array(_A, device=device)
+    res_np = _A.sum(axis=axis, keepdims=True)
+    res_nd =  A.sum(axis=axis)
+    res_nd = res_nd.numpy()
+    np.testing.assert_allclose(
+        res_np, res_nd, atol=1e-5, rtol=1e-5
+    )
+
+test_reduce_sum(reduce_params[1], nd.cpu())
