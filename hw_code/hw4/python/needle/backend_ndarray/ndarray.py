@@ -856,3 +856,7 @@ def squeeze(a, axis=None):
 # weiz 2024-09-28 add support of NDArray permute for Conv2D backward
 def permute(a, axis=None):
     return a.permute(axis)
+
+# weiz 2024-10-22, add a summation syntax sugar to make PKU solution happy
+def summation(a, axis=None, keepdims=False):
+    return a.sum(axis=axis, keepdims=keepdims)
