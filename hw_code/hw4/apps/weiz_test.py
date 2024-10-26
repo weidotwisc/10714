@@ -616,4 +616,16 @@ def test_reduce_sum(params, device):
         res_np, res_nd, atol=1e-5, rtol=1e-5
     )
 
-test_reduce_sum(reduce_params[1], nd.cpu())
+#test_reduce_sum(reduce_params[1], nd.cpu())
+
+
+### HW1
+def test_ewisepow_forward():
+    np.testing.assert_allclose(
+        ndl.power(
+            ndl.Tensor([[1.0, 2.0, 3.0]]),
+            ndl.Tensor([[0, 0, 2]]),
+        ).numpy(),
+        np.array([[1.0, 1.0, 9.0]]),
+    )
+test_ewisepow_forward()

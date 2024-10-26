@@ -6,6 +6,8 @@ from . import ndarray_backend_numpy
 from . import ndarray_backend_cpu
 import builtins # weiz 2024-04-17 in order to use the builtins.sum() function on list, sum has been redefined in this file
 from typing import Optional # weiz 2024-07-28 imported for Conv
+import needle.backend_selection as backend_selection # weiz 2024-10-26 so that i can have a reasonable default device policy
+
 # math.prod not in Python 3.7
 def prod(x):
     return reduce(operator.mul, x, 1)
@@ -77,7 +79,15 @@ def cpu():
 
 
 def default_device():
-    return cpu_numpy()
+    # weiz 2024-10-26 triage on backend_selection.BACKEND to decidewhat is the right default_device
+    if backend_selection.BACKEND == "np":
+        return cpu_numpy()
+    elif backend_selection.BACKEND == "nd":
+        return cpu()
+    elif backend_selection.BACKEND == "nd_cuda":
+        return cuda()
+    else:
+        assert(0) # unsupported backend yet, e.g., triton
 
 
 def all_devices():
@@ -517,8 +527,9 @@ class NDArray:
 
     def __pow__(self, other):
         out = NDArray.make(self.shape, device=self.device)
-        self.device.scalar_power(self.compact()._handle, other, out._handle)
-        return out
+        return self.ewise_or_scalar(other, self.device.ewise_power, self.device.scalar_power)
+        #self.device.scalar_power(self.compact()._handle, other, out._handle)
+        #return out
 
     def maximum(self, other):
         return self.ewise_or_scalar(

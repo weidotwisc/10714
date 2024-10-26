@@ -5,7 +5,7 @@ import os
 BACKEND = os.environ.get("NEEDLE_BACKEND", "nd")
 
 
-if BACKEND == "nd":
+if BACKEND == "nd" or BACKEND == "nd_cuda": # weiz 2024-10-26 add nd_cuda backend
     print("Using needle backend")
     from . import backend_ndarray as array_api
     from .backend_ndarray import (

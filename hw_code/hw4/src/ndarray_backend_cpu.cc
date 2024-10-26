@@ -307,6 +307,10 @@ scalar_t _power(scalar_t a, scalar_t b){
 void ScalarPower(const AlignedArray& a, scalar_t val, AlignedArray* out) {
 	ScalarFunc(a, val, out, _power);
 }
+// weiz 2024-10-26 added EwisePower so that NDArray can pass HW1 tests
+void EwisePower(const AlignedArray& a, const AlignedArray& b, AlignedArray* out){
+  EwiseFunc(a, b, out, _power);
+}
 scalar_t _max(scalar_t a, scalar_t b){
 	return std::max(a,b);
 }
@@ -570,6 +574,7 @@ PYBIND11_MODULE(ndarray_backend_cpu, m) {
    m.def("ewise_div", EwiseDiv);
    m.def("scalar_div", ScalarDiv);
    m.def("scalar_power", ScalarPower);
+   m.def("ewise_power", EwisePower); // weiz 2024-10-26 added ewise_power so that NDArray can pass HW1 tests
 
    m.def("ewise_maximum", EwiseMaximum);
    m.def("scalar_maximum", ScalarMaximum);
