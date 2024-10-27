@@ -340,7 +340,7 @@ class NDArray:
                     if(new_shape[i] > 1):
                         new_strides[i]=0
                 else:
-                    assert(self._shape[i] == new_shape[i])
+                    assert(expanded_shape[i] == new_shape[i])
         # end of weiz 2024-06-18 this if clause implements the logic that bcast from a smaller rank to a larger rank if possible
         else:
             assert(len(self._shape) == len (new_shape))
