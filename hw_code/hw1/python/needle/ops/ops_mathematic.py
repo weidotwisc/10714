@@ -85,7 +85,8 @@ class PowerScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        return self.scalar * array_api.power(node.inputs[0], self.scalar-1) * out_grad # weiz 2024-01-16 bug fixed , only manifested during hw2
+        pow_res = array_api.power(node.inputs[0], self.scalar-1) # weiz 2024-10-26, array_api(aka numpy) has operator overloading mechnaism that it will first check if Tensor class has __pow__, if so call it first, thus why HW1 using array_api worked, but hw4 wouldnt work with NDArray as array_api !!
+        return self.scalar * pow_res * out_grad # weiz 2024-01-16 bug fixed , only manifested during hw2
         ### END YOUR SOLUTION
 
 
