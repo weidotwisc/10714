@@ -261,6 +261,14 @@ class NDArray:
         if(new_shape == -1):
             total_elements = prod(self._shape)
             new_shape = (total_elements,)
+        elif(-1 in new_shape):
+            assert new_shape.count(-1) == 1, "ValueError: can only specify one unknown dimension"
+            # Calculate the product of all elements except -1
+            product_of_rest = reduce(operator.mul, (i for i in new_shape if i != -1), 1)
+            # Compute the replacement value for -1
+            replacement_value = prod(self._shape) // product_of_rest
+             # Create a new tuple with -1 replaced by the calculated value
+            new_shape = tuple(replacement_value if i == -1 else i for i in new_shape)
         # end of weiz 2024-10-21 to support reshape(-1) syntax 
          
         if prod(new_shape) != prod(self._shape):
