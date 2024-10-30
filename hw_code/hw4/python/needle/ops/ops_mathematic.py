@@ -138,7 +138,7 @@ def divide(a, b):
 
 class DivScalar(TensorOp):
     def __init__(self, scalar):
-        self.scalar = scalar
+        self.scalar = float(scalar)
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
@@ -207,7 +207,8 @@ class Reshape(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        return array_api.reshape(a, self.shape)
+        #return array_api.reshape(a, self.shape)
+        return a.compact().reshape(self.shape) # weiz 2024-10-29 when using NDArray backend need to compact() a first as a might not be the compact version, but reshape in NDArray requires it to be compact()!!
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -391,38 +392,15 @@ class ReLU(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
         return array_api.maximum(a,0)
-        #return array_api.maximum(0, a) weiz 2024-06-12, note 
-        ## def maximum(a, b):
-        # return a.maximum(b), so we would have to write maximum(a,0), as a will be an object
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        
-        # weiz 2024-10-22 makeshift solution to comment out my solution and use PKU solution instead
-        input_grad = node.inputs[0].realize_cached_data().copy()
-        input_grad[input_grad<=0] = 0
-        input_grad[input_grad>0] = 1 # at this point input_grad is NDArray, but the * in the next line make it a ndl.Tensory type ?
-        return out_grad * input_grad # weiz 2024-01-02 don't forget to multiply out_grad, otherwise we didn't get the gradients w.r.t loss function!!
-        
-        #out = node.realize_cached_data()
-        #return out_grad * Tensor(out > 0, device=out_grad.device)
-        # end of weiz 2024-10-22 makeshift solution to comment out my solution and use PKU solution instead 
-
+        input = node.inputs[0].realize_cached_data() # weiz 2024-10-30, this works because NDArray implements __gt__ dunder and returns an NDArray 
+        return out_grad * Tensor(input > 0, device=out_grad.device, dtype=out_grad.dtype) # # weiz 2024-10-30, this works because NDArray implements __gt__ dunder and returns an NDArray 
         ### END YOUR SOLUTION
 
 
-class PKUReLU(TensorOp):
-    def compute(self, a):
-        ### BEGIN YOUR SOLUTION
-        return array_api.maximum(a, 0)
-        ### END YOUR SOLUTION
-
-    def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
-        out = node.realize_cached_data()
-        return out_grad * Tensor(out > 0, device=out_grad.device)
-        ### END YOUR SOLUTION
 
 def relu(a):
     return ReLU()(a)

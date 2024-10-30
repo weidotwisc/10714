@@ -18,3 +18,4 @@ python3 -m pytest ./tests  -l -v -k "kaiming_uniform" # weiz 2024-10-09
 python3 -m pytest ./tests  -l -v -k "nn_conv_forward" # weiz 2024-10-15
 python3 -m pytest ./tests  -l -v -k "nn_conv_backward" # weiz 2024-10-15
 python3 -m pytest ./tests  -l -v -k "resnet9" # weiz 2024-10-21
+python3 -m pytest ./tests -l -v -k "train_cifar10" # weiz 2024-10-30
