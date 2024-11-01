@@ -63,5 +63,12 @@ real    26m40.875s
 user    26m38.333s
 sys     0m6.141s
 $ export NEEDLE_BACKEND=np
+$ python apps/simple_ml.py --app hw1
+training loss, training err:  (0.009235965007539178, 0.0009833333333333332)
+testing loss, testing err:  (0.06463945428130624, 0.0196)
+real    1m10.756s
+user    31m31.516s
+sys     43m2.866s
 ```
+As we can see the numpy() matmul impl is very good close enough to my naive CUDA code. In the meantime the CPU backend nd is very slow.
 
