@@ -20,11 +20,14 @@ python3 -m pytest -l -k "nn_epoch_ndl"
 # Section 3.2 Full Functionality Tests
 ```bash
 # assume at /Users/weiz/courses/cmu/dl_sys/10714/hw_code/hw1
-python apps/simple_ml.py
+$ time python apps/simple_ml.py
 ```
 
 Results:
 ```
-training loss, training err:  (0.009224053184869952, 0.0009833333333333332)
-testing loss, training err:  (0.06452358790197966, 0.0196)
+training loss, training err:  (0.009235965007539178, 0.0009833333333333332)    
+testing loss, testing err:  (0.06463945428130624, 0.0196)                      
+real    1m19.296s
+user    34m7.397s
+sys     49m36.290s
 ```
