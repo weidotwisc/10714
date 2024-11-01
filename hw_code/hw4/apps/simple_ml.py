@@ -37,7 +37,20 @@ def parse_mnist(image_filesname, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    with gzip.open(label_filename, 'rb') as lbpath:
+        magic, n = struct.unpack('>ii', lbpath.read(8)) # > means big-endian, i means int, two iis mean we need to read two numbers
+        #print(magic, n)
+        labels = np.frombuffer(lbpath.read(), dtype=np.uint8) # use np.frombuffer, apparently the previous lbapth.read(8) already moves the pointer to the proper data region
+        assert(len(labels) == n)
+        y = labels
+        #print(np.max(labels), np.min(labels)) # labels from 0 to 9
+    with gzip.open(image_filesname, 'rb') as imgpath:
+        magic, n, rows, cols = struct.unpack('>iiii', imgpath.read(16))
+        images = np.frombuffer(imgpath.read(), dtype=np.uint8).reshape(len(labels), 784)
+        assert(len(images) == n)
+        #print(images.shape)
+        X = images.astype(np.float32) / 255
+    return X,y
     ### END YOUR SOLUTION
 
 
@@ -58,7 +71,13 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    Z_exp = ndl.exp(Z)  # element-wise exp()
+    Z_exp_sum_col = (ndl.summation(Z_exp, axes=1)).reshape((-1,1))  # make a column vector, element component is the sum of each row in Z_exp
+                                                                       # note that, I have to use axes=(1,) not axes=(1), as (1) is not a tuple
+    A = Z_exp / ndl.broadcast_to(Z_exp_sum_col, Z_exp.shape)  # bcast (explicitly in needl) and normalize Z_exp to get Activation A
+    log_A = ndl.log(A)  # recall cross entropy was <ground_truth, -log(prediction)>
+    total_loss = ndl.summation(log_A * y_one_hot) * (-1)  # element-wise multiply and then sum, same as sum(A@Y.transpose())
+    return total_loss / (Z).shape[0]
     ### END YOUR SOLUTION
 
 
