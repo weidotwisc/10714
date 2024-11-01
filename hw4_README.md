@@ -41,3 +41,10 @@ python3 -m pytest ./tests -l -v -k "train_cifar10" # weiz 2024-10-30
 ```bash
 test_all.sh
 ```
+
+# Step4 test previous homeworks
+This is unique step that I try to use hw4 to test hw1, hw2 and hw3 tests.
+```bash
+test_hw1.sh
+```
+
