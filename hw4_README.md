@@ -45,6 +45,14 @@ test_all.sh
 # Step4 test previous homeworks
 This is unique step that I try to use hw4 to test hw1, hw2 and hw3 tests.
 ```bash
-test_hw1.sh
+# HW1 (under $DLSYS_HOME/hw4 directory)
+$ test_hw1.sh
+$ export NEEDLE_BACKEND=nd_cuda
+$ python apps/simple_ml.py --app hw1
+training loss, training err:  (array([0.00915339], dtype=float32), 0.0010166666666666666)
+testing loss, testing err:  (array([0.06506477], dtype=float32), 0.0192)
+real    0m48.044s
+user    0m41.041s
+sys     0m13.264s
 ```
 
