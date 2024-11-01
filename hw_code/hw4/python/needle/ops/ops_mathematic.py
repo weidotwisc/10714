@@ -138,13 +138,14 @@ def divide(a, b):
 
 class DivScalar(TensorOp):
     def __init__(self, scalar):
-        self.scalar = float(scalar)
+        self.scalar = scalar #np.float32(scalar)
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
         if(isinstance(self.scalar, int)): # weiz 2024-02-03, ugly hack to make the setter type check pass TODO!!
+            pass
             #self.scalar = a.dtype.type(self.scalar)
-            self.scalar = float(self.scalar) # weiz 2024-10-20, seems self.scalar = a.dtype.type(self.scalar) no longer works
+            #self.scalar = np.float32(self.scalar) # weiz 2024-10-20, seems self.scalar = a.dtype.type(self.scalar) no longer works
         # return array_api.divide(a, self.scalar) # weiz before 2024-06-09 was using this as numpy has divide() method,  but with CUDA and CPU backend there is no divide function
         return  a / self.scalar # weiz 2024-06-09 use /, which probably uses __truediv__ method in NDArray
         ### END YOUR SOLUTION
