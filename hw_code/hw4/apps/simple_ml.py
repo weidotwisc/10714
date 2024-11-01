@@ -3,16 +3,22 @@
 import struct
 import gzip
 import numpy as np
-
 import sys
+import os
 
-sys.path.append("python/")
+dlsys_home=os.getenv('DLSYS_HOME')
+assert(dlsys_home is not None)
+sys.path.append(os.path.join(dlsys_home, "hw4"))
+sys.path.append(os.path.join(dlsys_home, "hw4/python"))
+
+
 import needle as ndl
 
 import needle.nn as nn
 from apps.models import *
 import time
-device = ndl.cpu()
+import argparse
+#device = ndl.cpu() # weiz 2024-11-01 comment this out, as from hw4 i can use NEEDLE_BACKEND=nd, nd_cuda or np to control the backend
 
 def parse_mnist(image_filesname, label_filename):
     """Read an images and labels file in MNIST format.  See this page:
@@ -106,7 +112,32 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
     """
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    start_idx = 0
+    end_idx = start_idx + batch
+    num_classes = W2.shape[1]
+    while start_idx < len(X):
+        # step 1: retrieve data
+        X_batch = ndl.Tensor(X[start_idx:end_idx])
+        y_batch = y[start_idx:end_idx]
+        start_idx = start_idx + batch
+        end_idx = end_idx + batch
+        # step 2: fwd computation:
+        Z1 = ndl.matmul(X_batch, W1)
+        A1 = ndl.relu(Z1)  # relu
+        Z2 = ndl.matmul(A1, W2)
+        Y = np.eye(num_classes)[y_batch]  # create 1-hot-encoding, create an ID matrix of num_classes x num_classes, and use each element in y to index this ID matrix to get the corresponding
+        y_one_hot = ndl.Tensor(Y) # weiz, use numpy to generate really data logic and use ndl to wrap this tensor
+        loss = softmax_loss(Z2, y_one_hot)
+        print("loss: ", loss)
+        # step 3: bwd computation:
+        loss.backward()
+        #W1.data = W1.data - lr * W1.grad.data  # in-place update, not working , because datatype in data() not matching
+        #W2.data = W2.data - lr * W2.grad.data
+        W1.cached_data = W1.cached_data - lr * W1.grad.realize_cached_data() # in-place update
+        W2.cached_data = W2.cached_data - lr * W2.grad.realize_cached_data()
+        #W1 = W1 - lr * W1.grad # this will add additional compute nodes in the graph
+        #W2 = W2 - lr * W2.grad
+    return W1, W2
     ### END YOUR SOLUTION
 
 ### CIFAR-10 training ###
@@ -258,3 +289,31 @@ def loss_err(h, y):
     y_one_hot[np.arange(y.size), y] = 1
     y_ = ndl.Tensor(y_one_hot)
     return softmax_loss(h, y_).numpy(), np.mean(h.numpy().argmax(axis=1) != y)
+
+
+############# Below is added on 2024-11-01 to launch real training run ###############
+def weiz_nn_mnist():
+    X, y = parse_mnist(
+        os.path.join(dlsys_home, "hw4", "data/train-images-idx3-ubyte.gz"), 
+        os.path.join(dlsys_home, "hw4", "data/train-labels-idx1-ubyte.gz")
+    )
+    X_te, y_te = parse_mnist(os.path.join(dlsys_home, "hw4","data/t10k-images-idx3-ubyte.gz"),
+                             os.path.join(dlsys_home, "hw4", "data/t10k-labels-idx1-ubyte.gz"))
+    np.random.seed(0)
+    W1 = ndl.Tensor(np.random.randn(X.shape[1], 400).astype(np.float32) / np.sqrt(400))
+    W2 = ndl.Tensor(np.random.randn(400, 10).astype(np.float32) / np.sqrt(10))
+    for i in range(20):
+        W1, W2 = nn_epoch(X, y, W1, W2, lr=0.2, batch=100)
+
+    print("training loss, training err: ", loss_err(ndl.relu(ndl.Tensor(X) @ W1) @ W2, y))
+    print("testing loss, testing err: ", loss_err(ndl.relu(ndl.Tensor(X_te) @ W1) @ W2, y_te))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Greet the user.")
+    parser.add_argument("--app", type=str, help="Which app to run", default="hw1")
+    args = parser.parse_args()
+    if args.app == "hw1":
+        weiz_nn_mnist() 
+    #weiz_explore_gradient_of_gradient()
+    #weiz_explore_hessian()
+    #weiz_test2()
