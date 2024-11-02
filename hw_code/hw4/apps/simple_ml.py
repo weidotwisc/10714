@@ -288,7 +288,7 @@ def loss_err(h, y):
     y_one_hot = np.zeros((y.shape[0], h.shape[-1]))
     y_one_hot[np.arange(y.size), y] = 1
     y_ = ndl.Tensor(y_one_hot)
-    return softmax_loss(h, y_).numpy(), np.mean(h.numpy().argmax(axis=1) != y)
+    return softmax_loss(h, y_).numpy().squeeze(), np.mean(h.numpy().argmax(axis=1) != y) # weiz 2024-11-02 add the squeeze() to make sure we get a scalar value (e.g., numpy array of shape () instead of (1,) to make hw1 tests happy)
 
 
 ############# Below is added on 2024-11-01 to launch real training run ###############

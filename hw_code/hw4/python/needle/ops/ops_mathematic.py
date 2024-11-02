@@ -208,8 +208,10 @@ class Reshape(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        #return array_api.reshape(a, self.shape)
-        return a.compact().reshape(self.shape) # weiz 2024-10-29 when using NDArray backend need to compact() a first as a might not be the compact version, but reshape in NDArray requires it to be compact()!!
+        if(BACKEND == "np"): # weiz 2024-11-01 add numpy backend support in hw4 so keep the backends as close as possible
+            return array_api.reshape(a, self.shape)
+        else: # backedn is nd or nd_cuda
+            return a.compact().reshape(self.shape) # weiz 2024-10-29 when using NDArray backend need to compact() a first as a might not be the compact version, but reshape in NDArray requires it to be compact()!!
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
