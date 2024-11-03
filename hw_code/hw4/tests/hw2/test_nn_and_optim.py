@@ -979,7 +979,7 @@ def submit_nn_relu():
 def test_nn_sequential_forward_1():
     print(sequential_forward(batches=3))
     np.testing.assert_allclose(
-        sequential_forward(batches=3),
+        sequential_forward(batches=3) if BACKEND == "np" else sequential_forward(batches=3).numpy(), # weiz 2024-11-02 add ND support by converting it to numpy(),
         np.array(
             [
                 [3.296263, 0.057031, 2.97568, -4.618432, -0.902491],
@@ -995,7 +995,7 @@ def test_nn_sequential_forward_1():
 
 def test_nn_sequential_backward_1():
     np.testing.assert_allclose(
-        sequential_backward(batches=3),
+        sequential_backward(batches=3) if BACKEND == "np" else sequential_backward(batches=3).numpy(), # weiz 2024-11-02 add ND support by converting it to numpy(),
         np.array(
             [
                 [0.802697, -1.0971, 0.120842, 0.033051, 0.241105],
