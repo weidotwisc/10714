@@ -955,7 +955,7 @@ def submit_nn_linear():
 
 def test_nn_relu_forward_1():
     np.testing.assert_allclose(
-        relu_forward(2, 2),
+        relu_forward(2, 2) if BACKEND == "np" else relu_forward(2,2).numpy(), # weiz 2024-11-02 add ND support by converting it to numpy()
         np.array([[3.35, 4.2], [0.25, 4.5]], dtype=np.float32),
         rtol=1e-5,
         atol=1e-5,
@@ -964,7 +964,7 @@ def test_nn_relu_forward_1():
 
 def test_nn_relu_backward_1():
     np.testing.assert_allclose(
-        relu_backward(3, 2),
+        relu_backward(3, 2) if BACKEND == "np" else relu_backward(3,2).numpy(), # weiz 2024-11-02 add ND support by converting it to numpy(),
         np.array([[7.5, 2.7], [0.6, 0.2], [0.3, 6.7]], dtype=np.float32),
         rtol=1e-5,
         atol=1e-5,
