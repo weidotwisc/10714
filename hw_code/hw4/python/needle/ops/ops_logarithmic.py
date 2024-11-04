@@ -23,7 +23,7 @@ def logsoftmax(a):
     return LogSoftmax()(a)
 
 
-class LogSumExp(TensorOp):
+class   LogSumExp(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
         if (axes is not None):
             if (type(axes) is not tuple):
@@ -47,6 +47,8 @@ class LogSumExp(TensorOp):
         assert(self.grad_intermediate.shape == self.fwd_input_orig_shape)
         self.fwd_output_orig_shape = max_z.shape # bookeeping the fwd output right shape
         lse = array_api.squeeze(array_api.log(sum_exp_z) + max_z) # in order to make the semantic correspond to keepdims=False, the result need a reduction of axes, but the actual number stay the same
+        if(lse.shape == ()): # weiz 2024-11-04 my own squeeze() is the same as numpy squeeze() so it will squeeze a scalar-value to shape (), but this course considers reduction result to be of shape (1,)
+            lse = lse.reshape((1,)) # so I will do this hack to reshape it to (1,) for this special case
         return lse
         ### END YOUR SOLUTION
 
