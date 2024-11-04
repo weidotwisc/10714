@@ -418,7 +418,6 @@ class NDArray:
         # handle singleton as tuple, everything as slices
         if not isinstance(idxs, tuple):
             idxs = (idxs,)
-        
         # weiz 2024-07-13 add treatment to make idxs the same length as ndim, fill in slice(None) when dimensions are smaller
         assert(len(idxs) <= self.ndim)
         if(len(idxs) < self.ndim):
