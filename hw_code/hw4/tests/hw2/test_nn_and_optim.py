@@ -37,7 +37,7 @@ def batchnorm_forward(*shape, affine=False):
     if affine:
         bn.weight.data = get_tensor(shape[1], entropy=42)
         bn.bias.data = get_tensor(shape[1], entropy=1337)
-    return bn(x).cached_data
+    return bn(x).cached_data if BACKEND == "np" else bn(x).cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def batchnorm_backward(*shape, affine=False):
@@ -47,20 +47,20 @@ def batchnorm_backward(*shape, affine=False):
         bn.weight.data = get_tensor(shape[1], entropy=42)
         bn.bias.data = get_tensor(shape[1], entropy=1337)
     y = (bn(x) ** 2).sum().backward()
-    return x.grad.cached_data
+    return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def flatten_forward(*shape):
     x = get_tensor(*shape)
     tform = ndl.nn.Flatten()
-    return tform(x).cached_data
+    return tform(x).cached_data if BACKEND == "np" else tform(x).cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def flatten_backward(*shape):
     x = get_tensor(*shape)
     tform = ndl.nn.Flatten()
     (tform(x) ** 2).sum().backward()
-    return x.grad.cached_data
+    return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def batchnorm_running_mean(*shape, iters=10):
@@ -68,7 +68,7 @@ def batchnorm_running_mean(*shape, iters=10):
     for i in range(iters):
         x = get_tensor(*shape, entropy=i)
         y = bn(x)
-    return bn.running_mean.cached_data
+    return bn.running_mean.cached_data if BACKEND == "np" else bn.running_mean.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def batchnorm_running_var(*shape, iters=10):
@@ -76,7 +76,7 @@ def batchnorm_running_var(*shape, iters=10):
     for i in range(iters):
         x = get_tensor(*shape, entropy=i)
         y = bn(x)
-    return bn.running_var.cached_data
+    return bn.running_var.cached_data if BACKEND == "np" else bn.running_var.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def batchnorm_running_grad(*shape, iters=10):
@@ -86,7 +86,7 @@ def batchnorm_running_grad(*shape, iters=10):
         y = bn(x)
     bn.eval()
     (y**2).sum().backward()
-    return x.grad.cached_data
+    return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def relu_forward(*shape):
@@ -105,14 +105,14 @@ def relu_backward(*shape):
 def layernorm_forward(shape, dim):
     f = ndl.nn.LayerNorm1d(dim)
     x = get_tensor(*shape)
-    return f(x).cached_data
+    return f(x).cached_data if BACKEND == "np" else f(x).cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
 
 
 def layernorm_backward(shape, dims):
     f = ndl.nn.LayerNorm1d(dims)
     x = get_tensor(*shape)
     (f(x) ** 4).sum().backward()
-    return x.grad.cached_data
+    return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
 
 def logsoftmax_forward(shape, mult=1.0):
     x = get_tensor(*shape) * mult
@@ -129,7 +129,7 @@ def softmax_loss_forward(rows, classes):
     x = get_tensor(rows, classes)
     y = get_int_tensor(rows, low=0, high=classes)
     f = ndl.nn.SoftmaxLoss()
-    return np.array(f(x, y).cached_data)
+    return np.array(f(x, y).cached_data) if BACKEND == "np" else f(x,y).cached_data.numpy() # weiz 2024-11-04 support NDArray
 
 
 def softmax_loss_backward(rows, classes):
@@ -138,7 +138,7 @@ def softmax_loss_backward(rows, classes):
     f = ndl.nn.SoftmaxLoss()
     loss = f(x, y)
     loss.backward()
-    return x.grad.cached_data
+    return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 support NDArray
 
 
 def linear_forward(lhs_shape, rhs_shape):
@@ -179,7 +179,7 @@ def residual_forward(shape=(5, 5)):
         nn.Sequential(nn.Linear(*shape), nn.ReLU(), nn.Linear(*shape[::-1]))
     )
     x = get_tensor(*shape[::-1])
-    return f(x).cached_data
+    return f(x).cached_data if BACKEND == "np" else f(x).cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
 
 
 def residual_backward(shape=(5, 5)):
@@ -189,14 +189,18 @@ def residual_backward(shape=(5, 5)):
     )
     x = get_tensor(*shape[::-1])
     f(x).sum().backward()
-    return x.grad.cached_data
+    return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
 
 
 def learn_model_1d(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs):
     np.random.seed(42)
     model = _model([])
-    X = get_tensor(1024, feature_size).cached_data
-    y = get_int_tensor(1024, low=0, high=nclasses).cached_data.astype(np.uint8)
+    if (BACKEND == "np"):
+        X = get_tensor(1024, feature_size).cached_data
+        y = get_int_tensor(1024, low=0, high=nclasses).cached_data.astype(np.uint8)
+    else:
+        X = get_tensor(1024, feature_size).cached_data.numpy()
+        y = get_int_tensor(1024, low=0, high=nclasses).cached_data.numpy().astype(np.uint8)
     m = X.shape[0]
     batch = 32
 
@@ -217,14 +221,14 @@ def learn_model_1d(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs
             opt.step()
             grad_after = model.parameters()[0].grad.detach().cached_data
             np.testing.assert_allclose(
-                grad_before,
-                grad_after,
+                grad_before if BACKEND == "np" else grad_before.numpy(),
+                grad_after if BACKEND == "np" else grad_after.numpy(),
                 rtol=1e-5,
                 atol=1e-5,
                 err_msg="Optim should not modify gradients in place",
             )
 
-    return np.array(loss.cached_data)
+    return np.array(loss.cached_data) if BACKEND == "np" else loss.cached_data.numpy()
 
 
 def learn_model_1d_eval(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs):
@@ -355,7 +359,7 @@ def dropout_forward(shape, prob=0.5):
     np.random.seed(3)
     x = get_tensor(*shape)
     f = nn.Dropout(prob)
-    return f(x).cached_data
+    return f(x).cached_data if BACKEND == "np" else f(x).cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def dropout_backward(shape, prob=0.5):
@@ -364,7 +368,7 @@ def dropout_backward(shape, prob=0.5):
     f = nn.Dropout(prob)
     y = f(x).sum()
     y.backward()
-    return x.grad.cached_data
+    return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy()
 
 
 def num_params(model):
@@ -1017,7 +1021,7 @@ def submit_nn_sequential():
 
 def test_nn_softmax_loss_forward_1():
     np.testing.assert_allclose(
-        softmax_loss_forward(5, 10),
+        softmax_loss_forward(5, 10), 
         np.array(4.041218, dtype=np.float32),
         rtol=1e-5,
         atol=1e-5,

@@ -248,7 +248,8 @@ class Dropout(Module):
         ### BEGIN YOUR SOLUTION
         if(self.training):
             # * is unpacking operator that converts tuple to sequence of numbers
-            probs = randb(*x.shape, p=1-self.p) # p is the probability to be zeroed
+            probs = randb(*x.shape, p=1-self.p, dtype=x.dtype, device=x.device) # p is the probability to be zeroed
+                                                               # weiz 2024-11-04 need to set up the right dtype and device
             # and the randb impl is random_choice<=p,
             # thus randb(1-self.p) is the right percentage to be one-ed
             # e.g., p=0.2 means 20% will be zeroed,
