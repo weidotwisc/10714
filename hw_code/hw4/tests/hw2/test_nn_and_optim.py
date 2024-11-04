@@ -191,7 +191,7 @@ def residual_backward(shape=(5, 5)):
     f(x).sum().backward()
     return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
 
-
+# weiz 2024-11-04 fix various places where numpy() conversion is needed
 def learn_model_1d(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs):
     np.random.seed(42)
     model = _model([])
@@ -230,12 +230,16 @@ def learn_model_1d(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs
 
     return np.array(loss.cached_data) if BACKEND == "np" else loss.cached_data.numpy()
 
-
+# weiz 2024-11-04 fix various places where numpy() conversion is needed
 def learn_model_1d_eval(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs):
     np.random.seed(42)
     model = _model([])
-    X = get_tensor(1024, feature_size).cached_data
-    y = get_int_tensor(1024, low=0, high=nclasses).cached_data.astype(np.uint8)
+    if BACKEND == "np":
+        X = get_tensor(1024, feature_size).cached_data
+        y = get_int_tensor(1024, low=0, high=nclasses).cached_data.astype(np.uint8)
+    else:
+        X = get_tensor(1024, feature_size).cached_data.numpy()
+        y = get_int_tensor(1024, low=0, high=nclasses).cached_data.numpy().astype(np.uint8)
     m = X.shape[0]
     batch = 32
 
@@ -254,12 +258,12 @@ def learn_model_1d_eval(feature_size, nclasses, _model, optimizer, epochs=1, **k
 
     X_test = ndl.Tensor(get_tensor(batch, feature_size).cached_data)
     y_test = ndl.Tensor(
-        get_int_tensor(batch, low=0, high=nclasses).cached_data.astype(np.uint8)
+        get_int_tensor(batch, low=0, high=nclasses).cached_data.astype(np.uint8) if BACKEND == "np" else get_int_tensor(batch, low=0, high=nclasses).cached_data.numpy().astype(np.uint8)
     )
 
     model.eval()
 
-    return np.array(loss_func(model(X_test), y_test).cached_data)
+    return np.array(loss_func(model(X_test), y_test).cached_data) if BACKEND == "np" else loss_func(model(X_test), y_test).cached_data.numpy()
 
 
 def init_a_tensor_of_shape(shape, init_fn):
@@ -392,9 +396,13 @@ def mlp_resnet_num_params(dim, hidden_dim, num_blocks, num_classes, norm):
     return np.array(num_params(model))
 
 
+# weiz 2024-11-04 fix the BACKEND nd for input tensor initialization 
 def mlp_resnet_forward(dim, hidden_dim, num_blocks, num_classes, norm, drop_prob):
     np.random.seed(4)
-    input_tensor = ndl.Tensor(np.random.randn(2, dim), dtype=np.float32)
+    if BACKEND == "np":
+        input_tensor = ndl.Tensor(np.random.randn(2, dim), dtype=np.float32)
+    else:
+        input_tensor = ndl.Tensor(np.random.randn(2, dim), dtype="float32")
     output_tensor = MLPResNet(
         dim, hidden_dim, num_blocks, num_classes, norm, drop_prob
     )(input_tensor)
