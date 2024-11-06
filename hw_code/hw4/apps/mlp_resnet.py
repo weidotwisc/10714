@@ -153,6 +153,6 @@ def test_nn_linear_backward_1():
 
 if __name__ == "__main__":
     DLSYS_HOME = os.getenv("DLSYS_HOME")
-    train_mnist(data_dir=os.path.join(DLSYS_HOME, "hw2", "data"))
+    train_mnist(data_dir=os.path.join(DLSYS_HOME, "hw4", "data"))
     #print("weiz hw2")
     #test_nn_linear_backward_1()
