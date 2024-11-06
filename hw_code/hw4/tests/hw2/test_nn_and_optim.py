@@ -65,7 +65,7 @@ def flatten_backward(*shape):
 
 
 def batchnorm_running_mean(*shape, iters=10):
-    bn = ndl.nn.BatchNorm1d(shape[1])
+    bn = ndl.nn.BatchNorm1d(shape[1], device=default_device())
     for i in range(iters):
         x = get_tensor(*shape, entropy=i)
         y = bn(x)
