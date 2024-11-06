@@ -142,11 +142,15 @@ class DivScalar(TensorOp):
 
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        if(isinstance(self.scalar, int)): # weiz 2024-02-03, ugly hack to make the setter type check pass TODO!!
-            pass
+        #f(isinstance(self.scalar, int)): # weiz 2024-02-03, ugly hack to make the setter type check pass TODO!!
+            #pass
             #self.scalar = a.dtype.type(self.scalar)
             #self.scalar = np.float32(self.scalar) # weiz 2024-10-20, seems self.scalar = a.dtype.type(self.scalar) no longer works
         # return array_api.divide(a, self.scalar) # weiz before 2024-06-09 was using this as numpy has divide() method,  but with CUDA and CPU backend there is no divide function
+        if BACKEND == "np":
+            self.scalar = a.dtype.type(self.scalar)
+        else:
+            pass # C language and hopefully later triton will also honor the same type casting aka cast it to fp32
         return  a / self.scalar # weiz 2024-06-09 use /, which probably uses __truediv__ method in NDArray
         ### END YOUR SOLUTION
 
