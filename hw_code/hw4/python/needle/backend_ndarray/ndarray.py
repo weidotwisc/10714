@@ -81,8 +81,9 @@ def cpu():
 def default_device():
     # weiz 2024-10-26 triage on backend_selection.BACKEND to decidewhat is the right default_device
     if backend_selection.BACKEND == "np":
+        assert(0) # weiz 2024-11-05 not sure when cpu_numpy() is ever needed
         return cpu_numpy()
-    elif backend_selection.BACKEND == "nd":
+    if backend_selection.BACKEND == "nd":
         return cpu()
     elif backend_selection.BACKEND == "nd_cuda":
         return cuda()
