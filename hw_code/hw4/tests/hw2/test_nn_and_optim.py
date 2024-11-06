@@ -8,6 +8,7 @@ import needle.nn as nn
 sys.path.append("./apps")
 from mlp_resnet import *
 from needle.backend_selection import BACKEND
+from needle.backend_selection import default_device # weiz 2024-11-05 add correct default_device triage
 import mugrade
 
 """Deterministically generate a matrix"""
@@ -33,7 +34,7 @@ def check_prng(*shape):
 
 def batchnorm_forward(*shape, affine=False):
     x = get_tensor(*shape)
-    bn = ndl.nn.BatchNorm1d(shape[1])
+    bn = ndl.nn.BatchNorm1d(shape[1], device=default_device())
     if affine:
         bn.weight.data = get_tensor(shape[1], entropy=42)
         bn.bias.data = get_tensor(shape[1], entropy=1337)
@@ -42,7 +43,7 @@ def batchnorm_forward(*shape, affine=False):
 
 def batchnorm_backward(*shape, affine=False):
     x = get_tensor(*shape)
-    bn = ndl.nn.BatchNorm1d(shape[1])
+    bn = ndl.nn.BatchNorm1d(shape[1], device=default_device())
     if affine:
         bn.weight.data = get_tensor(shape[1], entropy=42)
         bn.bias.data = get_tensor(shape[1], entropy=1337)
@@ -103,13 +104,13 @@ def relu_backward(*shape):
 
 
 def layernorm_forward(shape, dim):
-    f = ndl.nn.LayerNorm1d(dim)
+    f = ndl.nn.LayerNorm1d(dim, device=default_device())
     x = get_tensor(*shape)
     return f(x).cached_data if BACKEND == "np" else f(x).cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
 
 
 def layernorm_backward(shape, dims):
-    f = ndl.nn.LayerNorm1d(dims)
+    f = ndl.nn.LayerNorm1d(dims, device=default_device())
     x = get_tensor(*shape)
     (f(x) ** 4).sum().backward()
     return x.grad.cached_data if BACKEND == "np" else x.grad.cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
@@ -143,7 +144,7 @@ def softmax_loss_backward(rows, classes):
 
 def linear_forward(lhs_shape, rhs_shape):
     np.random.seed(199)
-    f = ndl.nn.Linear(*lhs_shape)
+    f = ndl.nn.Linear(*lhs_shape, device=default_device())
     f.bias.data = get_tensor(lhs_shape[-1])
     x = get_tensor(*rhs_shape)
     return f(x).cached_data
@@ -151,7 +152,7 @@ def linear_forward(lhs_shape, rhs_shape):
 
 def linear_backward(lhs_shape, rhs_shape):
     np.random.seed(199)
-    f = ndl.nn.Linear(*lhs_shape)
+    f = ndl.nn.Linear(*lhs_shape, device=default_device())
     f.bias.data = get_tensor(lhs_shape[-1])
     x = get_tensor(*rhs_shape)
     (f(x) ** 2).sum().backward()
@@ -160,14 +161,14 @@ def linear_backward(lhs_shape, rhs_shape):
 
 def sequential_forward(batches=3):
     np.random.seed(42)
-    f = nn.Sequential(nn.Linear(5, 8), nn.ReLU(), nn.Linear(8, 5))
+    f = nn.Sequential(nn.Linear(5, 8, device=default_device()), nn.ReLU(), nn.Linear(8, 5, device=default_device()))
     x = get_tensor(batches, 5)
     return f(x).cached_data
 
 
 def sequential_backward(batches=3):
     np.random.seed(42)
-    f = nn.Sequential(nn.Linear(5, 8), nn.ReLU(), nn.Linear(8, 5))
+    f = nn.Sequential(nn.Linear(5, 8, device=default_device()), nn.ReLU(), nn.Linear(8, 5, device=default_device()))
     x = get_tensor(batches, 5)
     f(x).sum().backward()
     return x.grad.cached_data
@@ -176,7 +177,7 @@ def sequential_backward(batches=3):
 def residual_forward(shape=(5, 5)):
     np.random.seed(42)
     f = nn.Residual(
-        nn.Sequential(nn.Linear(*shape), nn.ReLU(), nn.Linear(*shape[::-1]))
+        nn.Sequential(nn.Linear(*shape, device=default_device()), nn.ReLU(), nn.Linear(*shape[::-1], device=default_device()))
     )
     x = get_tensor(*shape[::-1])
     return f(x).cached_data if BACKEND == "np" else f(x).cached_data.numpy() # weiz 2024-11-04 convert NDArray to numpy
@@ -185,7 +186,7 @@ def residual_forward(shape=(5, 5)):
 def residual_backward(shape=(5, 5)):
     np.random.seed(42)
     f = nn.Residual(
-        nn.Sequential(nn.Linear(*shape), nn.ReLU(), nn.Linear(*shape[::-1]))
+        nn.Sequential(nn.Linear(*shape, device=default_device()), nn.ReLU(), nn.Linear(*shape[::-1], device=default_device()))
     )
     x = get_tensor(*shape[::-1])
     f(x).sum().backward()
