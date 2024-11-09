@@ -54,7 +54,7 @@ class CIFAR10Dataset(Dataset):
         Image should be of shape (3, 32, 32)
         """
         ### BEGIN YOUR SOLUTION
-        return self.X[index], self.y[index]
+        return self.apply_transforms(self.X[index]), self.y[index] # weiz 2024-11-09 add the apply_transforms
         ### END YOUR SOLUTION
 
     def __len__(self) -> int:
