@@ -170,3 +170,8 @@ Traceback (most recent call last):
     array._handle = array.device.Array(prod(shape))
 RuntimeError: out of memory
 ```
+
+##HW3
+```bash
+./test_hw3.sh
+```
