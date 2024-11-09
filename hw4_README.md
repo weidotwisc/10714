@@ -38,8 +38,13 @@ python3 -m pytest ./tests -l -v -k "train_cifar10" # weiz 2024-10-30
 ```
 
 # Step3 test all
+## All unit tests
 ```bash
 test_all.sh
+```
+## App test
+```bash
+python apps/simple_ml.py --app cifar10
 ```
 
 # Step4 test previous homeworks
