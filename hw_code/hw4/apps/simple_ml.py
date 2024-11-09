@@ -18,7 +18,9 @@ import needle.nn as nn
 from apps.models import *
 import time
 import argparse
+from needle.backend_selection import default_device
 #device = ndl.cpu() # weiz 2024-11-01 comment this out, as from hw4 i can use NEEDLE_BACKEND=nd, nd_cuda or np to control the backend
+device = default_device() # weiz 2024-11-09 get default device
 
 def parse_mnist(image_filesname, label_filename):
     """Read an images and labels file in MNIST format.  See this page:
@@ -160,7 +162,39 @@ def epoch_general_cifar10(dataloader, model, loss_fn=nn.SoftmaxLoss(), opt=None)
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    if (opt is not None):
+        model.train()
+        correct, total_loss = 0, 0
+        total_sample_num = 0
+        for batch in dataloader:
+            opt.reset_grad()
+            X, y = batch
+            X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
+            out = model(X)
+            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+            loss = loss_fn(out, y)
+            print("training loss ", loss)
+            total_loss += loss.data.numpy() * y.shape[0]
+            total_sample_num += y.shape[0]
+            loss.backward()
+            opt.step()
+        return correct/(total_sample_num), total_loss/(total_sample_num)
+    else:
+        model.eval()
+        correct, total_loss = 0, 0
+        total_sample_num = 0
+        for batch in dataloader:
+            opt.reset_grad()
+            X, y = batch
+            X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
+            out = model(X)
+            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+            loss = loss_fn(out, y)
+            print("eval loss ", loss)
+            total_loss += loss.data.numpy() * y.shape[0]
+            total_sample_num += y.shape[0]
+        return correct/(total_sample_num), total_loss/(total_sample_num)
+
     ### END YOUR SOLUTION
 
 
@@ -184,7 +218,13 @@ def train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
+    total_acc, total_loss = 0.0, 0.0
+    for i in range(n_epochs):
+        acc, loss = epoch_general_cifar10(dataloader=dataloader, model=model, loss_fn = loss_fn(), opt = opt)
+        total_acc += acc
+        total_loss += loss
+    return total_acc / n_epochs, total_loss / n_epochs
     ### END YOUR SOLUTION
 
 
@@ -203,8 +243,18 @@ def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss):
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    avg_acc, avg_loss = epoch_general_cifar10(dataloader=dataloader, model=model, loss_fn=loss_fn())
+    return avg_acc, avg_loss
     ### END YOUR SOLUTION
+
+
+def cifar10_resnet9():
+
+    dataset = ndl.data.CIFAR10Dataset(os.path.join(dlsys_home, "hw4", "data/cifar-10-batches-py"), train=True)
+    dataloader = ndl.data.DataLoader(dataset=dataset,batch_size=128,shuffle=True)
+    model = ResNet9(device=device, dtype="float32")
+    train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,lr=0.001, weight_decay=0.001)
+    evaluate_cifar10(model, dataloader)
 
 
 ### PTB training ###
@@ -283,6 +333,9 @@ def evaluate_ptb(model, data, seq_len=40, loss_fn=nn.SoftmaxLoss,
 ### CODE BELOW IS FOR ILLUSTRATION, YOU DO NOT NEED TO EDIT
 
 
+
+
+############# Below is added on 2024-11-01 to launch real training run ###############
 def loss_err(h, y):
     """Helper function to compute both loss and error"""
     y_one_hot = np.zeros((y.shape[0], h.shape[-1]))
@@ -291,7 +344,6 @@ def loss_err(h, y):
     return softmax_loss(h, y_).numpy().squeeze(), np.mean(h.numpy().argmax(axis=1) != y) # weiz 2024-11-02 add the squeeze() to make sure we get a scalar value (e.g., numpy array of shape () instead of (1,) to make hw1 tests happy)
 
 
-############# Below is added on 2024-11-01 to launch real training run ###############
 def weiz_nn_mnist():
     X, y = parse_mnist(
         os.path.join(dlsys_home, "hw4", "data/train-images-idx3-ubyte.gz"), 
@@ -314,6 +366,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.app == "hw1":
         weiz_nn_mnist() 
+    elif args.app == 'cifar10':
+        cifar10_resnet9()
     #weiz_explore_gradient_of_gradient()
     #weiz_explore_hessian()
     #weiz_test2()
