@@ -6,7 +6,7 @@ import needle.nn as nn
 import numpy as np
 import time
 import os
-
+import gc
 np.random.seed(0)
 # MY_DEVICE = ndl.backend_selection.cuda()
 
@@ -60,6 +60,7 @@ def epoch(dataloader, model, opt=None):
         train_tensor = train_tensor.reshape((train_tensor.shape[0], flatten_feature_size)) # I need to flatten here to make the linear layer happy, thou
                                                  # previous dataset/dataloader ask for (28,28,1) shape, here we need to flatten it so that the linear layer
                                                  # will work with 784 as input dimension, instead of (28,28,1) tuple
+        assert(train_tensor.requires_grad == False)
         logits = model(train_tensor)
         loss = loss_fn(logits, label_tensor)
         error = np.sum(np.argmax(logits.numpy(), axis=1) != label_tensor.numpy())
@@ -69,6 +70,7 @@ def epoch(dataloader, model, opt=None):
             opt.reset_grad()
             loss.backward()
             opt.step()
+        gc.collect()
     return total_err / len(dataloader.dataset), total_loss / len(dataloader.dataset)
 
 
