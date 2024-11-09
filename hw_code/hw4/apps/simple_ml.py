@@ -223,6 +223,7 @@ def train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,
         acc, loss = epoch_general_cifar10(dataloader=dataloader, model=model, loss_fn = loss_fn(), opt = opt)
         total_acc += acc
         total_loss += loss
+        print(f"Epoch {i+1}: train_loss ={loss}, train_acc = {acc}")
     return total_acc / n_epochs, total_loss / n_epochs
     ### END YOUR SOLUTION
 
@@ -243,6 +244,7 @@ def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss):
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
     avg_acc, avg_loss = epoch_general_cifar10(dataloader=dataloader, model=model, loss_fn=loss_fn())
+    print(f"eval_loss = {avg_loss}, eval_acc = {avg_acc}")
     return avg_acc, avg_loss
     ### END YOUR SOLUTION
 
