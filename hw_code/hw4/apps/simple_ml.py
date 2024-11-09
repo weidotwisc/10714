@@ -184,7 +184,6 @@ def epoch_general_cifar10(dataloader, model, loss_fn=nn.SoftmaxLoss(), opt=None)
         correct, total_loss = 0, 0
         total_sample_num = 0
         for batch in dataloader:
-            opt.reset_grad()
             X, y = batch
             X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
             out = model(X)
