@@ -254,7 +254,7 @@ def cifar10_resnet9():
     dataset = ndl.data.CIFAR10Dataset(os.path.join(dlsys_home, "hw4", "data/cifar-10-batches-py"), train=True)
     dataloader = ndl.data.DataLoader(dataset=dataset,batch_size=128,shuffle=True)
     model = ResNet9(device=device, dtype="float32")
-    train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,lr=0.001, weight_decay=0.001)
+    train_cifar10(model, dataloader, n_epochs=10, optimizer=ndl.optim.Adam,lr=0.001, weight_decay=0.001)
     evaluate_cifar10(model, dataloader)
 
 
