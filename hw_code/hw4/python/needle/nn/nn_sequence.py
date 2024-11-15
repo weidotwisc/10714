@@ -38,7 +38,10 @@ class RNNCell(Module):
         """
         super().__init__()
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.bias = bias
+        self.W_ih = Parameter(init.rand())
         ### END YOUR SOLUTION
 
     def forward(self, X, h=None):
