@@ -126,6 +126,11 @@ class ReLU(Module):
         return ops.relu(x)
         ### END YOUR SOLUTION
 
+# weiz 2024-11-15 to support RNN
+class Tanh(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return ops.tanh(x)
+
 class Sequential(Module):
     def __init__(self, *modules):
         super().__init__()
