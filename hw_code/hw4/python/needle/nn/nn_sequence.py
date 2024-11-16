@@ -6,7 +6,7 @@ from needle import ops
 import needle.init as init
 import numpy as np
 from .nn_basic import Parameter, Module
-
+from .nn_basic import ReLU, Tanh
 
 class Sigmoid(Module):
     def __init__(self):
@@ -41,7 +41,25 @@ class RNNCell(Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.bias = bias
-        self.W_ih = Parameter(init.rand())
+        self.device = device
+        self.dtype = dtype
+        sqrt_k = 1 / self.hidden_size
+        # notice that Parameter is Tensor subclass and Module has a list of Parameters
+        self.W_ih = Parameter(init.rand(input_size, hidden_size, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+        self.W_hh = Parameter(init.rand(hidden_size, hidden_size, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+        if(bias):
+            self.bias_ih = Parameter(init.rand(hidden_size, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+            self.bias_hh = Parameter(init.rand(hidden_size, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+        if nonlinearity == "tanh":
+            self.act_func = Tanh()
+        elif nonlinearity == "relu":
+            self.act_func = ReLU()
+        else:
+            raise ValueError(f"Unknown nonlinearity: {nonlinearity}")
         ### END YOUR SOLUTION
 
     def forward(self, X, h=None):
@@ -56,7 +74,18 @@ class RNNCell(Module):
             for each element in the batch.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        x_proj_to_h = X @ self.W_ih 
+        if h is not None:
+            h_proj_to_h = h @ self.W_hh
+            cell_linear_proj = x_proj_to_h + h_proj_to_h
+        else:
+            cell_linear_proj = x_proj_to_h
+        if self.bias:
+            # notice : (1) my __add__ for tensor doesn't support implict bcast, so I would need to bcast 
+            # (2) my bcast supports from smaller rank to larger rank following numpy bcast rule, so i can do (hidden_size,) bcast to (bs, hidden_size)       
+            cell_linear_proj = cell_linear_proj + self.bias_hh.broadcast_to(cell_linear_proj.shape) + self.bias_ih.broadcast_to(cell_linear_proj.shape)
+        y = self.act_func(cell_linear_proj)
+        return y
         ### END YOUR SOLUTION
 
 
