@@ -43,7 +43,7 @@ class RNNCell(Module):
         self.bias = bias
         self.device = device
         self.dtype = dtype
-        sqrt_k = 1 / self.hidden_size
+        sqrt_k = np.sqrt(1 / self.hidden_size)
         # notice that Parameter is Tensor subclass and Module has a list of Parameters
         self.W_ih = Parameter(init.rand(input_size, hidden_size, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
                               device=device, dtype=dtype, requires_grad=True)
@@ -181,7 +181,14 @@ class LSTMCell(Module):
         """
         super().__init__()
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.bias = bias
+
+        # learnable parameters
+        k = 1 / hidden_size
+        #sqrt_k = math.sq
+        #self.W_ih
         ### END YOUR SOLUTION
 
 
