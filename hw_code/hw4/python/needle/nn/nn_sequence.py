@@ -113,8 +113,14 @@ class RNN(Module):
             of shape (hidden_size,).
         """
         super().__init__()
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        ### BEGIN YOUR SOLUTION  
+        layers =[]
+        layer_1 = RNNCell(input_size=input_size, hidden_size=hidden_size, bias=bias, nonlinearity=nonlinearity, device=device, dtype=dtype)
+        layers.append(layer_1)
+        for i in range(num_layers - 1):
+            layer_i = RNNCell(input_size=hidden_size, hidden_size=hidden_size, bias=bias, nonlinearity=nonlinearity, device=device, dtype=dtype)
+            layers.append(layer_i)
+        self.rnn_cells = layers
         ### END YOUR SOLUTION
 
     def forward(self, X, h0=None):
@@ -130,7 +136,28 @@ class RNN(Module):
         h_n of shape (num_layers, bs, hidden_size) containing the final hidden state for each element in the batch.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        seq_len, bs, input_size = X.shape
+        
+        if h0 is not None:
+            h0_splits = ops.split(h0, axis=0) # h0_splits is now a tuple of (bs, hidden_size), tuple size is num_layers
+        input_splits = ops.split(X, axis=0) # input_splits is now a tuple of (bs, input_size), tuple size is seq_len
+
+        final_state_list = []
+        for l,rnn_cell in enumerate(self.rnn_cells):
+            if h0 is None:
+                _h_t = None
+            else:
+                _h_t = h0_splits[l] 
+            next_layer_input_splits=[]
+            for t in range(seq_len):
+                x = input_splits[t]
+                _h_t = rnn_cell(x, _h_t)
+                next_layer_input_splits.append(_h_t)
+            final_state_list.append(_h_t)
+            input_splits = next_layer_input_splits
+        Y = ops.stack(tuple(input_splits), axis=0)
+        final_states = ops.stack(tuple(final_state_list), axis=0)
+        return Y, final_states
         ### END YOUR SOLUTION
 
 
