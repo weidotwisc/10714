@@ -20,3 +20,4 @@ python3 -m pytest ./tests/hw4  -l -v -k "nn_conv_backward" # weiz 2024-10-15
 python3 -m pytest ./tests/hw4  -l -v -k "resnet9" # weiz 2024-10-21
 python3 -m pytest ./tests/hw4 -l -v -k "train_cifar10" # weiz 2024-10-30
 python3 -m pytest ./tests/hw4 -v -k "test_rnn_cell" # weiz 2024-11-16
+python3 -m pytest -l -v -k "test_rnn" # weiz 2024-11-16
