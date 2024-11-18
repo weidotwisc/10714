@@ -570,7 +570,7 @@ def test_train_cifar10(device):
     out = one_iter_of_cifar10_training(dataloader, model, opt=ndl.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001), device=device)
     assert np.linalg.norm(np.array(list(out), dtype=object) - np.array([0.09375, 3.5892258])) < 1e-2
 
-test_train_cifar10(device)
+#test_train_cifar10(device)
 
 
 ### HW3 ##### 
@@ -594,4 +594,48 @@ def test_reduce_sum(params, device):
 
 #test_reduce_sum(reduce_params[1], nd.cpu())
 
+BATCH_SIZES = [1, 15]
+INPUT_SIZES = [1, 11]
+HIDDEN_SIZES = [1, 12]
+BIAS = [True, False]
+INIT_HIDDEN = [True, False]
+NONLINEARITIES = ['tanh', 'relu']
+_DEVICES = [ndl.cpu(), pytest.param(ndl.cuda(),
+    marks=pytest.mark.skipif(not ndl.cuda().enabled(), reason="No GPU"))]
+# @pytest.mark.parametrize("batch_size", BATCH_SIZES)
+# @pytest.mark.parametrize("input_size", INPUT_SIZES)
+# @pytest.mark.parametrize("hidden_size", HIDDEN_SIZES)
+# @pytest.mark.parametrize("bias", BIAS)
+# @pytest.mark.parametrize("init_hidden", INIT_HIDDEN)
+# @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+def test_lstm_cell(batch_size, input_size, hidden_size, bias, init_hidden, device):
+    x = np.random.randn(batch_size, input_size).astype(np.float32)
+    h0 = np.random.randn(batch_size, hidden_size).astype(np.float32)
+    c0 = np.random.randn(batch_size, hidden_size).astype(np.float32)
 
+    model_ = torch.nn.LSTMCell(input_size, hidden_size, bias=bias)
+    if init_hidden:
+        h_, c_ = model_(torch.tensor(x), (torch.tensor(h0), torch.tensor(c0)))
+    else:
+        h_, c_ = model_(torch.tensor(x), None)
+
+    model = ndl.nn.LSTMCell(input_size, hidden_size, device=device, bias=bias)
+
+    model.W_ih = ndl.Tensor(model_.weight_ih.detach().numpy().transpose(), device=device)
+    model.W_hh = ndl.Tensor(model_.weight_hh.detach().numpy().transpose(), device=device)
+    if bias:
+        model.bias_ih = ndl.Tensor(model_.bias_ih.detach().numpy(), device=device)
+        model.bias_hh = ndl.Tensor(model_.bias_hh.detach().numpy(), device=device)
+
+    if init_hidden:
+        h, c = model(ndl.Tensor(x, device=device), (ndl.Tensor(h0, device=device), ndl.Tensor(c0, device=device)))
+    else:
+        h, c = model(ndl.Tensor(x, device=device), None)
+    np.testing.assert_allclose(h_.detach().numpy(), h.numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(c_.detach().numpy(), c.numpy(), atol=1e-5, rtol=1e-5)
+
+    h.sum().backward()
+    h_.sum().backward()
+    np.testing.assert_allclose(model_.weight_ih.grad.detach().numpy().transpose(), model.W_ih.grad.numpy(), atol=1e-5, rtol=1e-5)
+
+test_lstm_cell(1,1,1,True,True, device=ndl.cpu())

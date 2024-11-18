@@ -14,7 +14,8 @@ class Sigmoid(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # weiz 2024-11-17, notice sigmoid(x) = 1 / (1 + exp(-1)), we have AddScalar, DivideScalar, but we don't have DividedByScalar, thus we need **(-1) to represent reciprocal.
+        return (1 + ops.exp(-x)) **(-1)
         ### END YOUR SOLUTION
 
 class RNNCell(Module):
@@ -186,9 +187,18 @@ class LSTMCell(Module):
         self.bias = bias
 
         # learnable parameters
-        k = 1 / hidden_size
-        #sqrt_k = math.sq
-        #self.W_ih
+        sqrt_k = np.sqrt(1/hidden_size)
+        self.W_ih = Parameter(init.rand(input_size, hidden_size*4, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+        self.W_hh = Parameter(init.rand(hidden_size, hidden_size*4, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+        if(bias):
+            self.bias_ih = Parameter(init.rand(hidden_size*4, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+            self.bias_hh = Parameter(init.rand(hidden_size*4, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
+                              device=device, dtype=dtype, requires_grad=True)
+        self.tanh = Tanh()
+        self.sigmoid = Sigmoid()
         ### END YOUR SOLUTION
 
 
@@ -209,7 +219,37 @@ class LSTMCell(Module):
             element in the batch.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        x_proj_to_h = X @ self.W_ih 
+        if h is not None:
+            h_0, c_0 = h
+            h_proj_to_h = h_0 @ self.W_hh
+            cell_linear_proj = x_proj_to_h + h_proj_to_h # bs, hidden_size*4
+        else:
+            h_0 = None
+            c_0 = None
+            cell_linear_proj = x_proj_to_h
+        if self.bias:
+            # notice : (1) my __add__ for tensor doesn't support implict bcast, so I would need to bcast 
+            # (2) my bcast supports from smaller rank to larger rank following numpy bcast rule, so i can do (hidden_size,) bcast to (bs, hidden_size)       
+            cell_linear_proj = cell_linear_proj + self.bias_hh.broadcast_to(cell_linear_proj.shape) + self.bias_ih.broadcast_to(cell_linear_proj.shape) # bs, hidden_size*4
+        splits_columns = ops.split(cell_linear_proj, axis=1) # split_columns is a TensorTuple of unit element, each element is bs by 1. there are 4*hidden_size columns
+        splits_columns = tuple(splits_columns) # weiz 2024-11-17, this is critical, as ops.stack() will require iterables, split() returns TensorTuple, but it didn't support slicing properly in __getitem__ call
+                                               # unfortuntely. So we need to convert it to a tuple first, lucily TensorTuple at least implements __getitem__ for individual index, so it can be converted to a tuple.
+                                               # This really is just because we didnt support split to even size tensors, but rather we can only split to many many unit size 1 tensor.
+        it = ops.stack(splits_columns[0:self.hidden_size], axis=1)
+        ft = ops.stack(splits_columns[self.hidden_size: self.hidden_size*2], axis=1)
+        gt = ops.stack(splits_columns[self.hidden_size*2:self.hidden_size*3], axis=1)
+        ot = ops.stack(splits_columns[self.hidden_size*3:self.hidden_size*4], axis=1)
+        it = self.sigmoid(it)
+        ft = self.sigmoid(ft)
+        gt = self.tanh(gt)
+        ot = self.sigmoid(ot)
+        if c_0 is None:
+            ct = it * gt
+        else:
+            ct = c_0 * ft + it * gt
+        ht = self.tanh(ct) * ot
+        return ht, ct
         ### END YOUR SOLUTION
 
 
