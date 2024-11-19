@@ -140,8 +140,8 @@ class RNN(Module):
         seq_len, bs, input_size = X.shape
         
         if h0 is not None:
-            h0_splits = ops.split(h0, axis=0) # h0_splits is now a tuple of (bs, hidden_size), tuple size is num_layers
-        input_splits = ops.split(X, axis=0) # input_splits is now a tuple of (bs, input_size), tuple size is seq_len
+            h0_splits = ops.split(h0, axis=0) # h0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
+        input_splits = ops.split(X, axis=0) # input_splits is now a TensorTuple of (bs, input_size), tuple size is seq_len
 
         final_state_list = []
         for l,rnn_cell in enumerate(self.rnn_cells):
@@ -151,7 +151,7 @@ class RNN(Module):
                 _h_t = h0_splits[l] 
             next_layer_input_splits=[]
             for t in range(seq_len):
-                x = input_splits[t]
+                x = input_splits[t] # weiz 2024-11-18 the only reason that indexing t works because input_splits is a TensorTuple, which implements def __getitem__(self, index: int)
                 _h_t = rnn_cell(x, _h_t)
                 next_layer_input_splits.append(_h_t)
             final_state_list.append(_h_t)
@@ -277,7 +277,13 @@ class LSTM(Module):
             of shape (4*hidden_size,).
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        layers =[]
+        layer_1 = LSTMCell(input_size=input_size, hidden_size=hidden_size, bias=bias,device=device, dtype=dtype)
+        layers.append(layer_1)
+        for i in range(num_layers - 1):
+            layer_i = LSTMCell(input_size=hidden_size, hidden_size=hidden_size, bias=bias, device=device, dtype=dtype)
+            layers.append(layer_i)
+        self.lstm_cells = layers
         ### END YOUR SOLUTION
 
     def forward(self, X, h=None):
@@ -298,7 +304,42 @@ class LSTM(Module):
             h_n of shape (num_layers, bs, hidden_size) containing the final hidden cell state for each element in the batch.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        seq_len, bs, input_size = X.shape
+        
+        if h is not None:
+            h0, c0 = h
+            h0_splits = ops.split(h0, axis=0) # h0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
+            c0_splits = ops.split(c0, axis=0) # c0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
+        else:
+            h0 = None 
+            c0 = None
+        input_splits = ops.split(X, axis=0) # input_splits is now a TensorTuple of (bs, input_size), tuple size is seq_len
+
+        final_state_list = []
+        final_cell_list = []
+        for l,lstm_cell in enumerate(self.lstm_cells):
+            if h0 is None:
+                _h_t = None
+                _c_t = None
+            else:
+                _h_t = h0_splits[l] 
+                _c_t = c0_splits[l]
+            next_layer_input_splits=[]
+            for t in range(seq_len):
+                x = input_splits[t] # weiz 2024-11-18 the only reason that indexing t works because input_splits is a TensorTuple, which implements def __getitem__(self, index: int)
+                if _h_t is None:
+                    assert(_c_t is None)
+                    _h_t, _c_t = lstm_cell(x, None)
+                else:
+                    _h_t, _c_t = lstm_cell(x, (_h_t, _c_t))
+                next_layer_input_splits.append(_h_t)
+            final_state_list.append(_h_t)
+            final_cell_list.append(_c_t)
+            input_splits = next_layer_input_splits
+        Y = ops.stack(tuple(input_splits), axis=0)
+        final_states = ops.stack(tuple(final_state_list), axis=0)
+        final_cells = ops.stack(tuple(final_cell_list), axis=0)
+        return Y, (final_states, final_cells)
         ### END YOUR SOLUTION
 
 class Embedding(Module):
