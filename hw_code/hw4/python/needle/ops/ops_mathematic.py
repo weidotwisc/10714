@@ -494,10 +494,10 @@ class Split(TensorTupleOp):
         ### BEGIN YOUR SOLUTION
         result_list = []
         split_len = A.shape[self.axis]
-        for i_th_tensor in range(split_len):
-            indexing_tuple = tuple(slice(None) if i != self.axis else i_th_tensor for i in range(A.ndim))
-            single_tensor = array_api.squeeze(A[indexing_tuple].compact(), self.axis)
-            result_list.append(single_tensor)
+        for i_th_ndarray in range(split_len):
+            indexing_tuple = tuple(slice(None) if i != self.axis else i_th_ndarray for i in range(A.ndim))
+            single_ndarray = array_api.squeeze(A[indexing_tuple].compact(), self.axis)
+            result_list.append(single_ndarray)
         return tuple(result_list)
         ### END YOUR SOLUTION
 
