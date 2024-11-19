@@ -38,6 +38,7 @@ python3 -m pytest ./tests/hw4 -l -v -k "train_cifar10" # weiz 2024-10-30
 python3 -m pytest ./tests/hw4 -v -k "test_rnn_cell" # weiz 2024-11-16
 python3 -m pytest ./tests/hw4 -l -v -k "test_rnn" # weiz 2024-11-16
 python3 -m pytest ./tests/hw4/ -l -v -k "test_lstm_cell" # weiz 2024-11-17
+python3 -m pytest ./tests/hw4/ -l -v -k "test_lstm" # weiz 2024-11-18
 ```
 
 # Step3 test all
