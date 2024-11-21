@@ -23,3 +23,4 @@ python3 -m pytest ./tests/hw4 -v -k "test_rnn_cell" # weiz 2024-11-16
 python3 -m pytest ./tests/hw4 -l -v -k "test_rnn" # weiz 2024-11-16
 python3 -m pytest ./tests/hw4/ -l -v -k "test_lstm_cell" # weiz 2024-11-17
 python3 -m pytest ./tests/hw4/ -l -v -k "test_lstm" # weiz 2024-11-18
+python3 -m pytest ./tests/hw4 -l -v -k "ptb" # weiz 2024-11-20
