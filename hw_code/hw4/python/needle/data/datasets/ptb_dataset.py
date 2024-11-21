@@ -25,7 +25,9 @@ class Dictionary(object):
         Returns the word's unique ID.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if word not in self.word2idx:
+            self.word2idx[word] = len(self.idx2word)
+            self.idx2word.append(word)
         ### END YOUR SOLUTION
 
     def __len__(self):
@@ -33,7 +35,7 @@ class Dictionary(object):
         Returns the number of unique words in the dictionary.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return len(self.idx2word)
         ### END YOUR SOLUTION
 
 
@@ -60,7 +62,16 @@ class Corpus(object):
         ids: List of ids
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        ids = []
+        with open(path, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f):
+                if max_lines is not None and i >= max_lines:
+                    break
+                words = line.strip().split() + ['<eos>']  # Add <eos> at the end of the line
+                for word in words:
+                    self.dictionary.add_word(word)  # Add word to the dictionary
+                ids.extend(self.dictionary.word2idx[word] for word in words)  # Convert to IDs
+        return ids
         ### END YOUR SOLUTION
 
 
@@ -81,7 +92,10 @@ def batchify(data, batch_size, device, dtype):
     Returns the data as a numpy array of shape (nbatch, batch_size).
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    per_batch_seq_len = len(data) // batch_size
+    trimmed_data = data[: per_batch_seq_len*batch_size]
+    return (np.reshape(trimmed_data, (batch_size, per_batch_seq_len))).T # notice that we need to take a transpose as columns are consecutive letters
+
     ### END YOUR SOLUTION
 
 
@@ -105,5 +119,10 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     target - Tensor of shape (bptt*bs,) with cached data as NDArray
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    assert((i+bptt) < len(batches)) # weiz 2024-11-20, just assume it never index beyond batches for labels.
+    X = batches[i:i+bptt, :]
+    Y = batches[i+1:i+1+bptt, :]
+    X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
+    Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
+    return X_t, Y_t
     ### END YOUR SOLUTION
