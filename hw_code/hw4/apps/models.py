@@ -2,6 +2,8 @@ import sys
 sys.path.append('./python')
 import needle as ndl
 import needle.nn as nn
+from needle.nn.nn_sequence import RNN, LSTM, Embedding
+from needle.nn import Linear
 import math
 import numpy as np
 np.random.seed(0)
@@ -59,7 +61,27 @@ class LanguageModel(nn.Module):
         """
         super(LanguageModel, self).__init__()
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.vocab_size = output_size
+        self.embedding_size = embedding_size
+        self.hidden_size = hidden_size
+        
+        self.num_layer = num_layers
+        self.output_size = output_size
+        self.device = device 
+        self.dtype = dtype
+
+        # start the modeling
+        self.embedding_layer = Embedding(num_embeddings=self.vocab_size, embedding_dim=embedding_size, device=device, dtype=dtype)
+        if seq_model == "rnn":
+            self.seq_model_type="rnn"
+            self.seq_model = RNN(input_size=embedding_size, hidden_size=hidden_size, num_layers=num_layers, device=device, dtype=dtype)
+        elif seq_model == "lstm":
+            self.seq_model_type = "lstm"
+            self.seq_model = LSTM(input_size=embedding_size, hidden_size=hidden_size, num_layers=num_layers, device=device, dtype=dtype)
+        else:
+            raise ValueError(f"Unknown seq_model: {seq_model}")
+        self.linear_layer = Linear(in_features=hidden_size, out_features=self.vocab_size, device=device, dtype=dtype)
+
         ### END YOUR SOLUTION
 
     def forward(self, x, h=None):
@@ -76,7 +98,13 @@ class LanguageModel(nn.Module):
             else h is tuple of (h0, c0), each of shape (num_layers, bs, hidden_size)
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        seq_len, bs = x.shape
+        x_embedding = self.embedding_layer(x)
+        x_seq_projection, h_output = self.seq_model(x_embedding, h) # x_seq_projection is of shape (seq_len, bs, hidden_size)
+        x_seq_projection = x_seq_projection.reshape((seq_len*bs, self.hidden_size))
+        logits = self.linear_layer(x_seq_projection) #  logits is of shape(seq_len*bs, vocab_size)
+        logits = logits.reshape((seq_len*bs, self.vocab_size))
+        return logits, h_output
         ### END YOUR SOLUTION
 
 

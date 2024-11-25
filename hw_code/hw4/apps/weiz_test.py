@@ -14,7 +14,8 @@ import operator
 import timeit
 import statistics
 import os
-
+from models import LanguageModel
+from simple_ml import *
 #print_ndarray_funcs()
 def backward_check(f, *args, **kwargs):
     eps = 1e-5
@@ -638,4 +639,97 @@ def test_lstm_cell(batch_size, input_size, hidden_size, bias, init_hidden, devic
     h_.sum().backward()
     np.testing.assert_allclose(model_.weight_ih.grad.detach().numpy().transpose(), model.W_ih.grad.numpy(), atol=1e-5, rtol=1e-5)
 
-test_lstm_cell(1,1,1,True,True, device=ndl.cpu())
+# test_lstm_cell(1,1,1,True,True, device=ndl.cpu())
+
+
+
+SEQ_LENGTHS = [1, 13]
+NUM_LAYERS = [1, 2]
+OUTPUT_SIZES = [1, 1000]
+EMBEDDING_SIZES = [1, 34]
+SEQ_MODEL = ['rnn', 'lstm']
+@pytest.mark.parametrize("seq_length", SEQ_LENGTHS)
+@pytest.mark.parametrize("num_layers", NUM_LAYERS)
+@pytest.mark.parametrize("batch_size", BATCH_SIZES)
+@pytest.mark.parametrize("embedding_size", EMBEDDING_SIZES)
+@pytest.mark.parametrize("hidden_size", HIDDEN_SIZES)
+@pytest.mark.parametrize("init_hidden", INIT_HIDDEN)
+@pytest.mark.parametrize("output_size", OUTPUT_SIZES)
+@pytest.mark.parametrize("seq_model", SEQ_MODEL)
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+def test_language_model_implementation(seq_length, num_layers, batch_size, embedding_size, hidden_size,
+                        init_hidden, output_size, seq_model, device):
+    #TODO add test for just nn.embedding?
+    x = np.random.randint(0, output_size, (seq_length, batch_size)).astype(np.float32)
+    h0 = ndl.Tensor(np.random.randn(num_layers, batch_size, hidden_size).astype(np.float32), device=device)
+    c0 = ndl.Tensor(np.random.randn(num_layers, batch_size, hidden_size).astype(np.float32), device=device)
+
+    model = LanguageModel(embedding_size, output_size, hidden_size, num_layers, seq_model, device=device)
+    if init_hidden:
+        if seq_model == 'lstm':
+            h = (h0, c0)
+        elif seq_model == 'rnn':
+            h = h0
+        output, h_ = model(ndl.Tensor(x, device=device), h)
+    else:
+        output, h_ = model(ndl.Tensor(x, device=device), None)
+
+    if seq_model == 'lstm':
+        assert isinstance(h_, tuple)
+        h0_, c0_ = h_
+        assert c0_.shape == (num_layers, batch_size, hidden_size)
+    elif seq_model == 'rnn':
+        h0_ = h_
+    assert h0_.shape == (num_layers, batch_size, hidden_size)
+    assert output.shape == (batch_size * seq_length, output_size)
+    #TODO actually test values
+    output.backward()
+    for idx, p in enumerate(model.parameters()):
+        print("******")
+        if hasattr(p, 'grad'):
+            print(f"Layer {idx}, shape {p.shape} p.grad is not None: {p.grad is not None}")    
+        else:
+            print(f"Layer {idx}, shape {p.shape} p has no grad")
+        #assert p.grad is not None
+
+
+# cuda-lstm-1000-False-12-34-15-2-1
+seq_length=2
+num_layers=1
+batch_size=1
+embedding_size=3
+hidden_size=12
+init_hidden=False
+output_size=100
+seq_model="rnn"
+device=ndl.cpu()
+#test_language_model_implementation(seq_length, num_layers, batch_size, embedding_size, hidden_size,
+#                        init_hidden, output_size, seq_model, device)
+
+
+def test_language_model_training(device):
+    corpus = ndl.data.Corpus(os.path.join(dlsys_home, "hw4", "data/ptb"), max_lines=20)
+    seq_len = 10
+    num_examples = 100
+    batch_size = 16
+    seq_model = 'rnn'
+    num_layers = 2
+    hidden_size = 10
+    n_epochs=2
+    train_data = ndl.data.batchify(corpus.train, batch_size=batch_size, device=device, dtype="float32")
+   
+    model = LanguageModel(30, len(corpus.dictionary), hidden_size=hidden_size, num_layers=num_layers, seq_model=seq_model, device=device)
+    train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
+    test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
+    print("****")
+    print(f"to test train_loss {train_loss}")
+    print(f"to test test_loss {test_loss}")
+    if str(device) == "cpu(0)":
+        np.testing.assert_allclose(5.4136161980805575, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.214852703942193, test_loss, atol=1e-5, rtol=1e-5)
+    elif str(device) == "cuda(0)":
+        np.testing.assert_allclose(5.424638041743526, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.23579544491238, test_loss, atol=1e-5, rtol=1e-5)
+
+
+test_language_model_training(ndl.cpu())

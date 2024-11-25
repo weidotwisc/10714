@@ -19,6 +19,7 @@ from apps.models import *
 import time
 import argparse
 from needle.backend_selection import default_device
+from needle.data.datasets import *
 #device = ndl.cpu() # weiz 2024-11-01 comment this out, as from hw4 i can use NEEDLE_BACKEND=nd, nd_cuda or np to control the backend
 device = default_device() # weiz 2024-11-09 get default device
 
@@ -218,13 +219,14 @@ def train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
     opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
-    total_acc, total_loss = 0.0, 0.0
+    #total_acc, total_loss = 0.0, 0.0
     for i in range(n_epochs):
         acc, loss = epoch_general_cifar10(dataloader=dataloader, model=model, loss_fn = loss_fn(), opt = opt)
-        total_acc += acc
-        total_loss += loss
+        #total_acc += acc
+        #total_loss += loss
         print(f"Epoch {i+1}: train_loss ={loss}, train_acc = {acc}")
-    return total_acc / n_epochs, total_loss / n_epochs
+    return acc, loss # weiz 2024-11-23 realized the question asks for only the last epoch acc and loss
+    #return total_acc / n_epochs, total_loss / n_epochs
     ### END YOUR SOLUTION
 
 
@@ -281,7 +283,41 @@ def epoch_general_ptb(data, model, seq_len=40, loss_fn=nn.SoftmaxLoss(), opt=Non
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    ds = PTBDataset(batchified_data=data, seq_len=seq_len, device=device, dtype=dtype)
+    h = None
+    if (opt is not None):
+        #dataloader = ndl.data.DataLoader(dataset=ds, batch_size=seq_len, shuffle=False)
+        model.train()
+        correct, total_loss = 0, 0
+        total_sample_num = 0
+        for batch in ds:
+            opt.reset_grad()
+            X, y = batch
+            #X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
+            out, h = model(X,h)
+            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+            loss = loss_fn(out, y)
+            print("training loss ", loss)
+            total_loss += loss.data.numpy() * y.shape[0]
+            total_sample_num += y.shape[0]
+            loss.backward()
+            opt.step()
+        return correct/(total_sample_num), total_loss/(total_sample_num)
+    else:
+        #dataloader = ndl.data.DataLoader(dataset=ds, batch_size=seq_len, shuffle=False)
+        model.eval()
+        correct, total_loss = 0, 0
+        total_sample_num = 0
+        for batch in ds:
+            X, y = batch
+            #X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
+            out, h = model(X, h)
+            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+            loss = loss_fn(out, y)
+            print("eval loss ", loss)
+            total_loss += loss.data.numpy() * y.shape[0]
+            total_sample_num += y.shape[0]
+        return correct/(total_sample_num), total_loss/(total_sample_num)
     ### END YOUR SOLUTION
 
 
@@ -308,7 +344,14 @@ def train_ptb(model, data, seq_len=40, n_epochs=1, optimizer=ndl.optim.SGD,
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
+    #total_acc, total_loss = 0.0, 0.0
+    for i in range(n_epochs):
+        acc, loss = epoch_general_ptb(data=data, model=model, seq_len=seq_len, loss_fn=loss_fn(), opt=opt, clip=clip, device=device, dtype=dtype)
+        #total_acc += acc
+        #total_loss += loss
+        print(f"Epoch {i+1}: train_loss ={loss}, train_acc = {acc}")
+    return acc, loss # weiz 2024-11-23 realized the question asks for only the last epoch acc and loss
     ### END YOUR SOLUTION
 
 def evaluate_ptb(model, data, seq_len=40, loss_fn=nn.SoftmaxLoss,
@@ -328,7 +371,9 @@ def evaluate_ptb(model, data, seq_len=40, loss_fn=nn.SoftmaxLoss,
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    avg_acc, avg_loss = epoch_general_ptb(data=data, model=model, seq_len=seq_len, loss_fn=loss_fn(), opt=None, clip=None, device=device, dtype=dtype)
+    print(f"eval_loss = {avg_loss}, eval_acc = {avg_acc}")
+    return avg_acc, avg_loss
     ### END YOUR SOLUTION
 
 ### CODE BELOW IS FOR ILLUSTRATION, YOU DO NOT NEED TO EDIT
