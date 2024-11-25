@@ -75,12 +75,17 @@ class RNNCell(Module):
             for each element in the batch.
         """
         ### BEGIN YOUR SOLUTION
+        bs, _ = X.shape
         x_proj_to_h = X @ self.W_ih 
         if h is not None:
             h_proj_to_h = h @ self.W_hh
             cell_linear_proj = x_proj_to_h + h_proj_to_h
         else:
             cell_linear_proj = x_proj_to_h
+            #h = init.zeros(bs, self.hidden_size, device=self.device, dtype=self.dtype)
+            #h_proj_to_h = h @ self.W_hh
+            #cell_linear_proj = x_proj_to_h + h_proj_to_h
+
         if self.bias:
             # notice : (1) my __add__ for tensor doesn't support implict bcast, so I would need to bcast 
             # (2) my bcast supports from smaller rank to larger rank following numpy bcast rule, so i can do (hidden_size,) bcast to (bs, hidden_size)       
@@ -357,7 +362,11 @@ class Embedding(Module):
             initialized from N(0, 1).
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim 
+        self.device = device
+        self.dtype = dtype
+        self.weight = Parameter(init.randn(num_embeddings, embedding_dim, mean=0.0, std=1.0), device=device, dtype=dtype, requires_grad=True)
         ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
@@ -371,5 +380,13 @@ class Embedding(Module):
         output of shape (seq_len, bs, embedding_dim)
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        assert(x.dtype == self.dtype)
+        assert(x.device == self.device)
+        seq_len, bs = x.shape
+        x_flatten  = ops.reshape(x, (seq_len * bs,))
+        x_one_hot = init.one_hot(self.num_embeddings, x_flatten, device=self.device, dtype=self.dtype, requires_grad=True) # shape: (seq_len*bs, num_embeddings)
+        result = x_one_hot @ self.weight # shape (seq_len*bs, embedding_dim)
+        result = result.reshape((seq_len, bs, self.embedding_dim))
+        return result
+
         ### END YOUR SOLUTION

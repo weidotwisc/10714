@@ -3,6 +3,7 @@ import os
 import numpy as np
 from needle import backend_ndarray as nd
 from needle import Tensor
+from ..data_basic import Dataset
 
 class Dictionary(object):
     """
@@ -95,6 +96,7 @@ def batchify(data, batch_size, device, dtype):
     per_batch_seq_len = len(data) // batch_size
     trimmed_data = data[: per_batch_seq_len*batch_size]
     return (np.reshape(trimmed_data, (batch_size, per_batch_seq_len))).T # notice that we need to take a transpose as columns are consecutive letters
+    #return (np.reshape(trimmed_data, (per_batch_seq_len, batch_size))) # but this seems to get better training loss for the tests! weiz 2024-11-25
 
     ### END YOUR SOLUTION
 
@@ -119,10 +121,58 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     target - Tensor of shape (bptt*bs,) with cached data as NDArray
     """
     ### BEGIN YOUR SOLUTION
-    assert((i+bptt) < len(batches)) # weiz 2024-11-20, just assume it never index beyond batches for labels.
-    X = batches[i:i+bptt, :]
-    Y = batches[i+1:i+1+bptt, :]
-    X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
-    Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
+    total_seq_len_per_batch, bs = batches.shape
+    if ( (i+1)+bptt < total_seq_len_per_batch ):
+        X = batches[i:i+bptt, :]
+        Y = batches[i+1:i+1+bptt, :]
+        X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
+        Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
+    else:
+        X = batches[i:-1, :]
+        Y = batches[i+1:, :]
+        X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
+        Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
     return X_t, Y_t
     ### END YOUR SOLUTION
+
+
+class PTBDataset(Dataset):
+    def __init__(
+        self,
+        batchified_data: np.ndarray , # result of batchify(), shape is (per_batch_seq_len, batch_size) , each element is the word's id in the dictionary
+        seq_len : int, # seq length i.e., bptt
+        device, 
+        dtype
+        # base_folder: str,
+        # train: bool,
+        # p: Optional[int] = 0.5,
+        # transforms: Optional[List] = None
+    ):
+        self.batchified_data = batchified_data
+        self.seq_len = seq_len
+        self.per_batch_seq_len, self.bs = batchified_data.shape
+        self.device = device
+        self.dtype = dtype
+
+    def __getitem__(self, index) -> object:
+        """
+        Returns the batched sequence at in the index
+        Each returned sample should be X, y
+        X: Tensor, shape of (seq_len, bs)
+        Y: Tensor, shape of (seq_len * bs, )
+        Simply call get_batch() method
+        """
+        if index >= len(self):  # Check if the index is out of bounds
+            raise IndexError("Index out of range")
+        return get_batch(self.batchified_data, index*self.seq_len, self.seq_len, self.device, self.dtype)
+
+    def __len__(self) -> int:
+        """
+        Returns the total number of examples in the dataset
+        """
+        if (self.per_batch_seq_len % self.seq_len == 0):
+            return self.per_batch_seq_len // self.seq_len
+        else:
+            return self.per_batch_seq_len // self.seq_len + 1 
+        
+        
