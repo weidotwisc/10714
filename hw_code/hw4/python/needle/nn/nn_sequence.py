@@ -77,14 +77,11 @@ class RNNCell(Module):
         ### BEGIN YOUR SOLUTION
         bs, _ = X.shape
         x_proj_to_h = X @ self.W_ih 
-        if h is not None:
-            h_proj_to_h = h @ self.W_hh
-            cell_linear_proj = x_proj_to_h + h_proj_to_h
-        else:
-            cell_linear_proj = x_proj_to_h
-            #h = init.zeros(bs, self.hidden_size, device=self.device, dtype=self.dtype)
-            #h_proj_to_h = h @ self.W_hh
-            #cell_linear_proj = x_proj_to_h + h_proj_to_h
+        if h is None:
+           h = init.zeros(bs, self.hidden_size, device=self.device, dtype=self.dtype, requires_grad=False) # weiz 2024-11-27 just comply with task description to initialize h w/ zeros.
+
+        h_proj_to_h = h @ self.W_hh
+        cell_linear_proj = x_proj_to_h + h_proj_to_h
 
         if self.bias:
             # notice : (1) my __add__ for tensor doesn't support implict bcast, so I would need to bcast 
@@ -120,6 +117,11 @@ class RNN(Module):
         """
         super().__init__()
         ### BEGIN YOUR SOLUTION  
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.dtype = dtype
+        self.device = device
         layers =[]
         layer_1 = RNNCell(input_size=input_size, hidden_size=hidden_size, bias=bias, nonlinearity=nonlinearity, device=device, dtype=dtype)
         layers.append(layer_1)
@@ -144,8 +146,10 @@ class RNN(Module):
         ### BEGIN YOUR SOLUTION
         seq_len, bs, input_size = X.shape
         
-        if h0 is not None:
-            h0_splits = ops.split(h0, axis=0) # h0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
+        if h0 is None: # weiz 2024-11-27 comply with task description such that 
+            h0 = init.zeros(self.num_layers, bs, self.hidden_size, device=self.device, dtype=self.dtype, requires_grad=False)
+
+        h0_splits = ops.split(h0, axis=0) # h0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
         input_splits = ops.split(X, axis=0) # input_splits is now a TensorTuple of (bs, input_size), tuple size is seq_len
 
         final_state_list = []
