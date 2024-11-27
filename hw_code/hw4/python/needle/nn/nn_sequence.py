@@ -194,7 +194,8 @@ class LSTMCell(Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.bias = bias
-
+        self.device = device
+        self.dtype = dtype
         # learnable parameters
         sqrt_k = np.sqrt(1/hidden_size)
         self.W_ih = Parameter(init.rand(input_size, hidden_size*4, low=(-sqrt_k), high = sqrt_k, device=device, dtype=dtype), 
@@ -228,15 +229,15 @@ class LSTMCell(Module):
             element in the batch.
         """
         ### BEGIN YOUR SOLUTION
+        bs, _ = X.shape
+        if h is None: # weiz 2024-11-27 make it comply with task description that defaults to zero if not provided
+            h = (init.zeros(bs, self.hidden_size, dtype=self.dtype, device=self.device, requires_grad=False),
+                 init.zeros(bs, self.hidden_size, dtype=self.dtype, device=self.device, requires_grad=False))
         x_proj_to_h = X @ self.W_ih 
-        if h is not None:
-            h_0, c_0 = h
-            h_proj_to_h = h_0 @ self.W_hh
-            cell_linear_proj = x_proj_to_h + h_proj_to_h # bs, hidden_size*4
-        else:
-            h_0 = None
-            c_0 = None
-            cell_linear_proj = x_proj_to_h
+        h_0, c_0 = h
+        h_proj_to_h = h_0 @ self.W_hh
+        cell_linear_proj = x_proj_to_h + h_proj_to_h # bs, hidden_size*4
+        
         if self.bias:
             # notice : (1) my __add__ for tensor doesn't support implict bcast, so I would need to bcast 
             # (2) my bcast supports from smaller rank to larger rank following numpy bcast rule, so i can do (hidden_size,) bcast to (bs, hidden_size)       
@@ -286,6 +287,11 @@ class LSTM(Module):
             of shape (4*hidden_size,).
         """
         ### BEGIN YOUR SOLUTION
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.device = device
+        self.dtype = dtype
         layers =[]
         layer_1 = LSTMCell(input_size=input_size, hidden_size=hidden_size, bias=bias,device=device, dtype=dtype)
         layers.append(layer_1)
@@ -314,14 +320,14 @@ class LSTM(Module):
         """
         ### BEGIN YOUR SOLUTION
         seq_len, bs, input_size = X.shape
+        if h is None: # weiz 2024-11-27 make it comply with task description that when h is None make it all zeros
+            h = (init.zeros(self.num_layers, bs, self.hidden_size, device=self.device, dtype=self.dtype, requires_grad=False),
+                 init.zeros(self.num_layers, bs, self.hidden_size, device=self.device, dtype=self.dtype, requires_grad=False))
         
-        if h is not None:
-            h0, c0 = h
-            h0_splits = ops.split(h0, axis=0) # h0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
-            c0_splits = ops.split(c0, axis=0) # c0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
-        else:
-            h0 = None 
-            c0 = None
+        h0, c0 = h
+        h0_splits = ops.split(h0, axis=0) # h0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
+        c0_splits = ops.split(c0, axis=0) # c0_splits is now a TensorTuple of (bs, hidden_size), tuple size is num_layers
+        
         input_splits = ops.split(X, axis=0) # input_splits is now a TensorTuple of (bs, input_size), tuple size is seq_len
 
         final_state_list = []
