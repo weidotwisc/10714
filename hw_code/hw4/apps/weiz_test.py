@@ -732,4 +732,65 @@ def test_language_model_training(device):
         np.testing.assert_allclose(5.23579544491238, test_loss, atol=1e-5, rtol=1e-5)
 
 
-test_language_model_training(ndl.cpu())
+#test_language_model_training(ndl.cpu())
+
+## A RNN-based PyTorch Language Modeling implementation
+
+from utils import RNNLanguageModel
+
+def test_pyt_language_model_training():
+    # taking the same hyper-params from hw4
+    seq_len = 10
+    batch_size = 16
+    seq_model = 'rnn'
+    num_layers = 2
+    hidden_size = 10
+    n_epochs=2
+
+    # weiz get from hw4
+    embedding_dim=30
+    lr=4.0
+    weight_decay = 0.0
+    corpus = ndl.data.Corpus(os.path.join(dlsys_home, "hw4", "data/ptb"), max_lines=20)
+    vocab_size = len(corpus.dictionary)
+    train_data = ndl.data.batchify(corpus.train, batch_size=batch_size, device=device, dtype="float32")
+    
+    torch.manual_seed(42)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(42)
+        torch.cuda.manual_seed_all(42)  # If using multiple GPUs
+
+    model = RNNLanguageModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_size=hidden_size, num_layers=num_layers)
+    criterion = torch.nn.CrossEntropyLoss()
+
+    np.random.seed(4) # taken from hw4
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
+    
+    
+
+    ds = PTBDataset(train_data, seq_len=seq_len, dtype="float32", device=None)
+    
+    hidden = model.init_hidden(batch_size)  # Initialize hidden state once, outside the loop
+
+    for epoch in range(n_epochs):
+        total_loss = 0
+        total_samples = 0
+        for sequences, targets in ds:
+            sequences = torch.Tensor(sequences.numpy()).to(torch.long)
+            targets = torch.Tensor(targets.numpy()).to(torch.long)
+            optimizer.zero_grad()
+        
+            # Detach the hidden state to avoid backpropagating through the entire sequence history
+            hidden = hidden.detach()
+        
+            outputs, hidden = model(sequences, hidden)
+            loss = criterion(outputs.view(-1, vocab_size), targets.view(-1))
+            loss.backward()
+            optimizer.step()
+            print(loss.item())
+            total_loss += loss.item() * len(targets)
+            total_samples += len(targets)
+
+        print(f"Epoch {epoch + 1}/{n_epochs}, Loss: {total_loss / total_samples:.4f}")
+   
+test_pyt_language_model_training()

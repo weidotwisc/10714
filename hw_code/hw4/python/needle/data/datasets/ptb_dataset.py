@@ -125,13 +125,13 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     if ( (i+1)+bptt < total_seq_len_per_batch ):
         X = batches[i:i+bptt, :]
         Y = batches[i+1:i+1+bptt, :]
-        X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
-        Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
     else:
         X = batches[i:-1, :]
         Y = batches[i+1:, :]
-        X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
-        Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
+    X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
+    Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
+    print(X_t.shape)
+    print(Y_t.shape)
     return X_t, Y_t
     ### END YOUR SOLUTION
 
@@ -174,5 +174,6 @@ class PTBDataset(Dataset):
             return self.per_batch_seq_len // self.seq_len
         else:
             return self.per_batch_seq_len // self.seq_len + 1 
+        #return self.per_batch_seq_len // self.seq_len
         
         
