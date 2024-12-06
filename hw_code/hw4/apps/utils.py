@@ -7,6 +7,7 @@ from needle.nn import Parameter
 import needle as ndl
 import numpy as np
 import random
+from models import LanguageModel
 '''
 This file implements
 (1) converter methods that convert modules (e.g., Embedding, RNN-based language modeling) from PyT to Needle so that I can test parity
@@ -220,7 +221,7 @@ def test_rnn_parity(input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=
     pyt_model = rnn_converter(pyt_model=None, ndl_model=ndl_model, device=device, dtype=dtype)
     rnn_parity(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
 
-test_rnn_parity(input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=16, device=default_device(), dtype="float32")
+#test_rnn_parity(input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=16, device=default_device(), dtype="float32")
 
 
 class RNNLanguageModel(torch.nn.Module):
@@ -244,13 +245,109 @@ class RNNLanguageModel(torch.nn.Module):
         return torch.zeros(self.num_layers, batch_size, self.hidden_size)
 from models import LanguageModel
 
-def rnn_lm_converter(src_model: RNNLanguageModel, device=None, dtype="float32"):
-    embedding_size = src_model.embedding_dim
-    vocab_size = src_model.vocab_size
-    hidden_size = src_model.hidden_size
-    num_layers  = src_model.num_layers
-    seq_model ="rnn" # weiz hard-coded rnn for now
-    model = LanguageModel(embedding_size=embedding_size, vocab_size=vocab_size, hidden_size=hidden_size, num_layers=num_layers, seq_model=seq_model, device=device)
-    # step 1 convert the embedding layer
-    
+def rnnlm_converter(pyt_model: RNNLanguageModel = None , ndl_model: LanguageModel = None, device=default_device(), dtype="float32"):
+    assert ((pyt_model is not None)^(ndl_model is not None))
 
+    if (pyt_model is not None):
+        embedding_size = pyt_model.embedding_dim
+        vocab_size = pyt_model.vocab_size
+        hidden_size = pyt_model.hidden_size
+        num_layers  = pyt_model.num_layers
+        seq_model ="rnn" # weiz hard-coded rnn for now
+        ndl_model = LanguageModel(embedding_size=embedding_size, output_size=vocab_size, hidden_size=hidden_size, num_layers=num_layers, seq_model=seq_model, device=device)
+        # step 1 convert the embedding layer
+        ndl_model.embedding_layer = embedding_converter(pyt_model=pyt_model.embedding, ndl_model=None, device=device, dtype=dtype)
+        # step 2 convert the rnn layer
+        ndl_model.seq_model = rnn_converter(pyt_model=pyt_model.rnn, ndl_model=None, device=device, dtype=dtype)
+        # step 3 convert the linear layer
+        ndl_model.linear_layer = linear_converter(pyt_model=pyt_model.fc, ndl_model=None, device=device, dtype=dtype)
+        return ndl_model
+    else:
+        embedding_size = ndl_model.embedding_size
+        vocab_size = ndl_model.vocab_size
+        hidden_size = ndl_model.hidden_size
+        num_layers = ndl_model.num_layer
+        pyt_model = RNNLanguageModel(vocab_size=vocab_size, embedding_dim=embedding_size, hidden_size=hidden_size, num_layers=num_layers)
+        # step 1 convert the embedding layer
+        pyt_model.embedding = embedding_converter(pyt_model=None, ndl_model=ndl_model.embedding_layer, device=device, dtype=dtype)
+        # step 2 convert the rnn layer
+        pyt_model.rnn = rnn_converter(pyt_model=None, ndl_model=ndl_model.seq_model, device=device, dtype=dtype)
+        # step 3 convert the linear layer
+        pyt_model.fc = linear_converter(pyt_model=None, ndl_model=ndl_model.linear_layer, device=device, dtype=dtype)
+        return pyt_model 
+
+def rnnlm_parity(pyt_model: RNNLanguageModel = None, ndl_model: LanguageModel = None, seq_len=10, bs=16):
+    assert(pyt_model is not None and ndl_model is not None)
+    hidden_size = pyt_model.hidden_size
+    num_layers = pyt_model.num_layers
+    vocab_size = pyt_model.vocab_size
+    # Step 1 run forward
+    X_np = np.random.randint(0, vocab_size, size=(seq_len, bs)).astype(np.float32)
+    X_pyt = torch.tensor(X_np, dtype=torch.long)
+    X_ndl = ndl.Tensor(X_np, device=ndl_model.device, dtype="float32")
+    init_hidden_np = np.zeros((num_layers, bs, hidden_size)).astype("float32")
+    init_hidden_pyt = torch.tensor(init_hidden_np, dtype=torch.float32)
+    init_hidden_ndl = ndl.Tensor(init_hidden_np, device=ndl_model.device, dtype="float32")
+    logits_pyt, h_pyt = pyt_model(X_pyt, init_hidden_pyt)
+    logits_ndl, h_ndl = ndl_model(X_ndl, init_hidden_ndl)
+    np.testing.assert_allclose(logits_pyt.detach().numpy().reshape(seq_len*bs, -1), logits_ndl.detach().numpy(), atol=1e-5, rtol=1e-5) # notice in pyt_model, the output is (seq_len, bs, vocab_size) ndl_model the output is (seq_len*bs, vocab), so we need to reshape so that they are consistent
+    np.testing.assert_allclose(h_pyt.detach().numpy(), h_ndl.detach().numpy(), atol=1e-5, rtol=1e-5)
+
+    # Step 2 run backward()
+    logits_pyt.sum().backward()
+    logits_ndl.sum().backward()
+    np.testing.assert_allclose(pyt_model.rnn.weight_ih_l0.grad.detach().numpy().transpose(), ndl_model.seq_model.rnn_cells[0].W_ih.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(pyt_model.rnn.weight_hh_l0.grad.detach().numpy().transpose(), ndl_model.seq_model.rnn_cells[0].W_hh.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(pyt_model.rnn.bias_ih_l0.grad.detach().numpy(), ndl_model.seq_model.rnn_cells[0].bias_ih.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(pyt_model.rnn.bias_hh_l0.grad.detach().numpy(), ndl_model.seq_model.rnn_cells[0].bias_hh.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(pyt_model.embedding.weight.grad.detach().numpy(), ndl_model.embedding_layer.weight.grad.detach().numpy(), atol=1e-5, rtol=1e-5) 
+
+def rnnlm_parity_multi_seq(pyt_model: RNNLanguageModel = None, ndl_model: LanguageModel = None, seq_len=10, bs=16):
+    assert(pyt_model is not None and ndl_model is not None)
+    hidden_size = pyt_model.hidden_size
+    num_layers = pyt_model.num_layers
+    vocab_size = pyt_model.vocab_size
+    # Step 1 run forward
+    X_np_seq1 = np.random.randint(0, vocab_size, size=(seq_len, bs)).astype(np.float32)
+    X_pyt_seq1 = torch.tensor(X_np_seq1, dtype=torch.long)
+    X_ndl_seq1 = ndl.Tensor(X_np_seq1, device=ndl_model.device, dtype="float32")
+    X_np_seq2 = np.random.randint(0, vocab_size, size=(seq_len, bs)).astype(np.float32)
+    X_pyt_seq2 = torch.tensor(X_np_seq2, dtype=torch.long)
+    X_ndl_seq2 = ndl.Tensor(X_np_seq2, device=ndl_model.device, dtype="float32")
+
+    init_hidden_np = np.zeros((num_layers, bs, hidden_size)).astype("float32")
+    init_hidden_pyt = torch.tensor(init_hidden_np, dtype=torch.float32)
+    init_hidden_ndl = ndl.Tensor(init_hidden_np, device=ndl_model.device, dtype="float32")
+    logits_pyt, h_pyt = pyt_model(X_pyt_seq1, init_hidden_pyt)
+    logits_ndl, h_ndl = ndl_model(X_ndl_seq1, init_hidden_ndl)
+    h_pyt.detach()
+    h_ndl.detach()
+    logits_pyt, h_pyt = pyt_model(X_pyt_seq2, h_pyt)
+    logits_ndl, h_ndl = ndl_model(X_ndl_seq2, h_ndl)
+    np.testing.assert_allclose(logits_pyt.detach().numpy().reshape(seq_len*bs, -1), logits_ndl.detach().numpy(), atol=1e-5, rtol=1e-5) # notice in pyt_model, the output is (seq_len, bs, vocab_size) ndl_model the output is (seq_len*bs, vocab), so we need to reshape so that they are consistent
+    np.testing.assert_allclose(h_pyt.detach().numpy(), h_ndl.detach().numpy(), atol=1e-5, rtol=1e-5)
+
+    # Step 2 run backward()
+    logits_pyt.sum().backward()
+    logits_ndl.sum().backward()
+    np.testing.assert_allclose(pyt_model.rnn.weight_ih_l0.grad.detach().numpy().transpose(), ndl_model.seq_model.rnn_cells[0].W_ih.grad.detach().numpy(), atol=1e-4, rtol=1e-4)
+    np.testing.assert_allclose(pyt_model.rnn.weight_hh_l0.grad.detach().numpy().transpose(), ndl_model.seq_model.rnn_cells[0].W_hh.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(pyt_model.rnn.bias_ih_l0.grad.detach().numpy(), ndl_model.seq_model.rnn_cells[0].bias_ih.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(pyt_model.rnn.bias_hh_l0.grad.detach().numpy(), ndl_model.seq_model.rnn_cells[0].bias_hh.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(pyt_model.embedding.weight.grad.detach().numpy(), ndl_model.embedding_layer.weight.grad.detach().numpy(), atol=1e-5, rtol=1e-5) 
+       
+
+def test_rnnlm_parity(vocab_size=100, input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=16, device=default_device(), dtype="float32"):
+    # direction 1: src: pyt dest: ndl
+    pyt_model = RNNLanguageModel(vocab_size=vocab_size, embedding_dim=input_size, hidden_size=hidden_size, num_layers=num_layers)
+    ndl_model = rnnlm_converter(pyt_model=pyt_model, ndl_model=None, device=device, dtype=dtype)
+    rnnlm_parity(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+    rnnlm_parity_multi_seq(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+    # direction 2: src: ndl dest: pyt
+    ndl_model = LanguageModel(embedding_size=input_size, output_size=vocab_size, hidden_size=hidden_size,num_layers=num_layers, seq_model="rnn", device=device, dtype=dtype)
+    pyt_model = rnnlm_converter(pyt_model=None, ndl_model=ndl_model, device=device, dtype=dtype)
+    rnnlm_parity(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+    rnnlm_parity_multi_seq(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+
+#set_pyt_seed(42)
+test_rnnlm_parity(vocab_size=100, input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=16, device=default_device(), dtype="float32")

@@ -3,7 +3,7 @@ import inspect
 #from needle import backend_ndarray as nd
 import sys
 import pytest
-sys.path.append("/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/python")
+#sys.path.append("/mnt/nfs/d3nvme0/userhomes/weiz/10714/hw_code/hw4/python")
 import needle as ndl
 from needle import backend_ndarray as nd
 import torch
@@ -793,4 +793,17 @@ def test_pyt_language_model_training():
 
         print(f"Epoch {epoch + 1}/{n_epochs}, Loss: {total_loss / total_samples:.4f}")
    
-test_pyt_language_model_training()
+#test_pyt_language_model_training()
+
+
+def test_tokenizer():
+    DLSYS_HOME = os.getenv("DLSYS_HOME")
+    base_dir = os.path.join(DLSYS_HOME, "hw4", "data", "ptb")  # Replace with your base directory containing train.txt and test.txt
+    corpus = Corpus(base_dir=base_dir, max_lines=20)
+
+    # Detokenize the first 50 IDs from the training set
+    detokenized_text = corpus.detokenize(corpus.train)
+    print("Detokenized Text:")
+    print(detokenized_text)
+
+test_tokenizer()
