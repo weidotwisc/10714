@@ -342,12 +342,16 @@ def test_rnnlm_parity(vocab_size=100, input_size=30, hidden_size=10, num_layers=
     pyt_model = RNNLanguageModel(vocab_size=vocab_size, embedding_dim=input_size, hidden_size=hidden_size, num_layers=num_layers)
     ndl_model = rnnlm_converter(pyt_model=pyt_model, ndl_model=None, device=device, dtype=dtype)
     rnnlm_parity(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+    pyt_model.zero_grad() # weiz 2024-12-06 to clear out gradients is important for pytorch models, as otherwise the gradients are accumulated
     rnnlm_parity_multi_seq(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+    pyt_model.zero_grad()
     # direction 2: src: ndl dest: pyt
     ndl_model = LanguageModel(embedding_size=input_size, output_size=vocab_size, hidden_size=hidden_size,num_layers=num_layers, seq_model="rnn", device=device, dtype=dtype)
     pyt_model = rnnlm_converter(pyt_model=None, ndl_model=ndl_model, device=device, dtype=dtype)
     rnnlm_parity(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+    pyt_model.zero_grad()
     rnnlm_parity_multi_seq(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
+    pyt_model.zero_grad()
 
 #set_pyt_seed(42)
 test_rnnlm_parity(vocab_size=100, input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=16, device=default_device(), dtype="float32")
