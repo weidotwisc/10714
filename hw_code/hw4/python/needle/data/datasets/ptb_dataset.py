@@ -75,6 +75,21 @@ class Corpus(object):
         return ids
         ### END YOUR SOLUTION
 
+    def detokenize(self, ids):
+        """
+        Converts a list of token IDs back to the corresponding string.
+
+        Input:
+        ids - List of token IDs
+
+        Output:
+        detokenized_string - The reconstructed string from the list of token IDs
+        """
+        words = [self.dictionary.idx2word[idx] for idx in ids]
+        detokenized_string = ' '.join(words).replace(' <eos>', '\n')
+        return detokenized_string
+    
+
 
 def batchify(data, batch_size, device, dtype):
     """
@@ -177,3 +192,16 @@ class PTBDataset(Dataset):
         #return self.per_batch_seq_len // self.seq_len
         
         
+
+
+if __name__ == "__main__":
+    # Example usage
+    DLSYS_HOME = os.getenv("DLSYS_HOME")
+    base_dir = os.path.join(DLSYS_HOME, "hw4", "data", "ptb")  # Replace with your base directory containing train.txt and test.txt
+    corpus = Corpus(base_dir=base_dir, max_lines=20)
+
+    # Detokenize the first 50 IDs from the training set
+    detokenized_text = corpus.detokenize(corpus.train)
+    print("Detokenized Text:")
+    print(detokenized_text)
+
