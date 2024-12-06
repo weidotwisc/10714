@@ -16,6 +16,7 @@ import statistics
 import os
 from models import LanguageModel
 from simple_ml import *
+from utils import set_pyt_seed, RNNLanguageModel, rnnlm_converter
 #print_ndarray_funcs()
 def backward_check(f, *args, **kwargs):
     eps = 1e-5
@@ -707,18 +708,25 @@ device=ndl.cpu()
 #                        init_hidden, output_size, seq_model, device)
 
 
-def test_language_model_training(device):
+def test_language_model_training(device, pyt_model: RNNLanguageModel = None):
+    set_pyt_seed(42)
     corpus = ndl.data.Corpus(os.path.join(dlsys_home, "hw4", "data/ptb"), max_lines=20)
     seq_len = 10
     num_examples = 100
     batch_size = 16
     seq_model = 'rnn'
     num_layers = 2
+    embedding_dim=30
     hidden_size = 10
     n_epochs=2
     train_data = ndl.data.batchify(corpus.train, batch_size=batch_size, device=device, dtype="float32")
-   
-    model = LanguageModel(30, len(corpus.dictionary), hidden_size=hidden_size, num_layers=num_layers, seq_model=seq_model, device=device)
+    vocab_size = len(corpus.dictionary)
+    if (pyt_model is None):
+        pyt_rnnlm_model = RNNLanguageModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_size=hidden_size, num_layers=num_layers)
+        model = rnnlm_converter(pyt_model=pyt_rnnlm_model, ndl_model=None)
+        #model = LanguageModel(embedding_dim=embedding_dim, output_size=len(corpus.dictionary), hidden_size=hidden_size, num_layers=num_layers, seq_model=seq_model, device=device)
+    else:
+        model = rnnlm_converter(pyt_model=pyt_model, ndl_model=None)
     train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
     test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
     print("****")
@@ -739,6 +747,7 @@ def test_language_model_training(device):
 from utils import RNNLanguageModel
 
 def test_pyt_language_model_training():
+    set_pyt_seed(42)
     # taking the same hyper-params from hw4
     seq_len = 10
     batch_size = 16
@@ -755,10 +764,7 @@ def test_pyt_language_model_training():
     vocab_size = len(corpus.dictionary)
     train_data = ndl.data.batchify(corpus.train, batch_size=batch_size, device=device, dtype="float32")
     
-    torch.manual_seed(42)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(42)
-        torch.cuda.manual_seed_all(42)  # If using multiple GPUs
+    
 
     model = RNNLanguageModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_size=hidden_size, num_layers=num_layers)
     criterion = torch.nn.CrossEntropyLoss()
@@ -793,7 +799,7 @@ def test_pyt_language_model_training():
 
         print(f"Epoch {epoch + 1}/{n_epochs}, Loss: {total_loss / total_samples:.4f}")
    
-#test_pyt_language_model_training()
+test_pyt_language_model_training()
 
 
 def test_tokenizer():
@@ -806,4 +812,4 @@ def test_tokenizer():
     print("Detokenized Text:")
     print(detokenized_text)
 
-test_tokenizer()
+#test_tokenizer()
