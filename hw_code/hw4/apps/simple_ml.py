@@ -285,60 +285,39 @@ def epoch_general_ptb(data, model, seq_len=40, loss_fn=nn.SoftmaxLoss(), opt=Non
     ### BEGIN YOUR SOLUTION
     ds = PTBDataset(batchified_data=data, seq_len=seq_len, device=device, dtype=dtype)
     h = None
+    mode = ""
     if (opt is not None):
-        #dataloader = ndl.data.DataLoader(dataset=ds, batch_size=seq_len, shuffle=False)
         model.train()
-        correct, total_loss = 0, 0
-        total_sample_num = 0
-        for batch in ds:
-            opt.reset_grad()
-            X, y = batch
-            #X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
-            if(X.shape[0] == seq_len):
-                out, h = model(X,h)
-            else:
-                out, h = model(X, None)
-            # detach h
-            if isinstance(h, tuple):
-                h = tuple([h_.detach() for h_ in h])
-            else:
-                h = h.detach()
-            
-            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
-            loss = loss_fn(out, y)
-            
-            
-            print("training loss ", loss)
-            total_loss += loss.data.numpy() * y.shape[0]
-            total_sample_num += y.shape[0]
+        mode = "Train"
+    else:
+        model.eval()
+        mode = "Eval"
+        
+    correct, total_loss = 0, 0
+    total_sample_num = 0
+    for batch in ds:
+        X, y = batch
+        # if(X.shape[0] == seq_len):
+        #     out, h = model(X,h)
+        # else: # when it is the last batch, we don't use the previous hidden states, likely due to the seq len difference, the last batch loss is always a bit higher
+        #     out, h = model(X, None)
+        out, h = model(X, h)
+        # detach h
+        if isinstance(h, tuple): # in LSTM we have h = (hidden_states, cell_states) tuple
+            h = tuple([h_.detach() for h_ in h])
+        else: # in RNN, we only have hidden_states
+            h = h.detach()
+        correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+        loss = loss_fn(out, y)
+        print(f"{mode} loss: {loss}")
+        total_loss += loss.data.numpy() * y.shape[0]
+        total_sample_num += y.shape[0]
+        if (opt is not None):
             loss.backward()
             opt.step()
-        return correct/(total_sample_num), total_loss/(total_sample_num)
-    else:
-        #dataloader = ndl.data.DataLoader(dataset=ds, batch_size=seq_len, shuffle=False)
-        model.eval()
-        correct, total_loss = 0, 0
-        total_sample_num = 0
-        for batch in ds:
-            X, y = batch
-            #X,y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
-            out, h = model(X, h)
-            # detach h
-            if isinstance(h, tuple):
-                h = tuple([h_.detach() for h_ in h])
-            else:
-                h = h.detach()
-            
-            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
-            
-            
-            loss = loss_fn(out, y)
-            
-            
-            print("eval loss ", loss)
-            total_loss += loss.data.numpy() * y.shape[0]
-            total_sample_num += y.shape[0]
-        return correct/(total_sample_num), total_loss/(total_sample_num)
+            opt.reset_grad()
+    return correct/(total_sample_num), total_loss/(total_sample_num)
+   
     ### END YOUR SOLUTION
 
 
