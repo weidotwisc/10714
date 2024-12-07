@@ -41,6 +41,7 @@ python3 -m pytest ./tests/hw4/ -l -v -k "test_lstm_cell" # weiz 2024-11-17
 python3 -m pytest ./tests/hw4/ -l -v -k "test_lstm" # weiz 2024-11-18
 python3 -m pytest ./tests/hw4 -l -v -k "ptb" # weiz 2024-11-20
 python3 -m pytest ./tests/hw4 -l -v -k "language_model_implementation" # weiz 2024-11-28
+python3 -m pytest ./tests/hw4 -l -v -k "language_model_training" # weiz 2024-12-07
 ```
 
 # Step3 test all
