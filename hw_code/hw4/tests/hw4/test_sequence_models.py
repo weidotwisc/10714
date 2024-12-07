@@ -12,7 +12,7 @@ import needle.nn as nn
 
 from simple_ml import *
 from models import LanguageModel
-
+from apps import utils # weiz 2024-12-07 import rnnlm converter between pyt and needle models
 
 np.random.seed(3)
 
@@ -241,6 +241,29 @@ def test_language_model_training(device):
     elif str(device) == "cuda(0)":
         np.testing.assert_allclose(5.424638041743526, train_loss, atol=1e-5, rtol=1e-5)
         np.testing.assert_allclose(5.23579544491238, test_loss, atol=1e-5, rtol=1e-5)
+
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+def test_language_model_training_weiz(device):
+    utils.set_pyt_seed(42)
+    corpus = ndl.data.Corpus("data/ptb", max_lines=20)
+    seq_len = 10
+    num_examples = 100
+    batch_size = 16
+    seq_model = 'rnn'
+    num_layers = 2
+    hidden_size = 10
+    n_epochs=2
+    train_data = ndl.data.batchify(corpus.train, batch_size=batch_size, device=device, dtype="float32")
+    vocab_size = len(corpus.dictionary)
+    embedding_dim = 30
+    pyt_rnnlm_model = utils.RNNLanguageModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_size=hidden_size, num_layers=num_layers)
+    model = utils.rnnlm_converter(pyt_model=pyt_rnnlm_model, ndl_model=None, device=device)
+    train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
+    test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
+    np.testing.assert_allclose(5.5425, train_loss, atol=1e-3, rtol=1e-3) # use PyT impl as ground truth
+    np.testing.assert_allclose(5.2173, test_loss, atol=1e-3, rtol=1e-3) # use PyT impl as ground truth
+    
+
 
 
 ### MUGRADE ###

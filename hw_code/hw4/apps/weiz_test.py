@@ -723,10 +723,10 @@ def test_language_model_training(device, pyt_model: RNNLanguageModel = None):
     vocab_size = len(corpus.dictionary)
     if (pyt_model is None):
         pyt_rnnlm_model = RNNLanguageModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_size=hidden_size, num_layers=num_layers)
-        model = rnnlm_converter(pyt_model=pyt_rnnlm_model, ndl_model=None)
+        model = rnnlm_converter(pyt_model=pyt_rnnlm_model, ndl_model=None, device=device)
         #model = LanguageModel(embedding_dim=embedding_dim, output_size=len(corpus.dictionary), hidden_size=hidden_size, num_layers=num_layers, seq_model=seq_model, device=device)
     else:
-        model = rnnlm_converter(pyt_model=pyt_model, ndl_model=None)
+        model = rnnlm_converter(pyt_model=pyt_model, ndl_model=None, device=device)
     train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
     test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
     print("****")
@@ -740,7 +740,7 @@ def test_language_model_training(device, pyt_model: RNNLanguageModel = None):
         np.testing.assert_allclose(5.23579544491238, test_loss, atol=1e-5, rtol=1e-5)
 
 
-#test_language_model_training(ndl.cpu())
+test_language_model_training(ndl.cuda())
 
 ## A RNN-based PyTorch Language Modeling implementation
 
@@ -797,7 +797,21 @@ def test_pyt_language_model_training():
             total_loss += loss.item() * len(targets)
             total_samples += len(targets)
 
-        print(f"Epoch {epoch + 1}/{n_epochs}, Loss: {total_loss / total_samples:.4f}")
+        print(f"Training Epoch {epoch + 1}/{n_epochs}, Loss: {total_loss / total_samples:.4f}")
+    total_loss = 0
+    total_samples = 0
+    for sequences, targets in ds:
+        sequences = torch.Tensor(sequences.numpy()).to(torch.long)
+        targets = torch.Tensor(targets.numpy()).to(torch.long)
+        # Detach the hidden state to avoid backpropagating through the entire sequence history
+        hidden = hidden.detach()
+        
+        outputs, hidden = model(sequences, hidden)
+        loss = criterion(outputs.view(-1, vocab_size), targets.view(-1))
+        total_loss += loss.item() * len(targets)
+        total_samples += len(targets)
+    print(f"Eval Loss: {total_loss / total_samples:.4f}")
+    
    
 test_pyt_language_model_training()
 
@@ -805,11 +819,21 @@ test_pyt_language_model_training()
 def test_tokenizer():
     DLSYS_HOME = os.getenv("DLSYS_HOME")
     base_dir = os.path.join(DLSYS_HOME, "hw4", "data", "ptb")  # Replace with your base directory containing train.txt and test.txt
-    corpus = Corpus(base_dir=base_dir, max_lines=20)
-
+    corpus = Corpus(base_dir=base_dir, max_lines=200)
+    print(f"len(corpus.train): {len(corpus.train)}")
+    vocab_size = len(corpus.dictionary)
+    print(f"vocab_size: {vocab_size}")
+    bs = 16
+    train_data = ndl.data.batchify(corpus.train, batch_size=bs, device=device, dtype="float32")
+    print(f"len(train_data): {len(train_data)}")
+    seq_len = 10
+    ds = PTBDataset(train_data, seq_len=seq_len, dtype="float32", device=None)
+    for X,y in ds:
+        #pass
+        print(X.shape, y.shape)
     # Detokenize the first 50 IDs from the training set
-    detokenized_text = corpus.detokenize(corpus.train)
-    print("Detokenized Text:")
-    print(detokenized_text)
+    #detokenized_text = corpus.detokenize(corpus.train)
+    #print("Detokenized Text:")
+    #print(detokenized_text)
 
 #test_tokenizer()

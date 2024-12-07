@@ -143,10 +143,10 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     else:
         X = batches[i:-1, :]
         Y = batches[i+1:, :]
+    assert(X.shape == Y.shape)
+    assert(len(X) >=1 )
     X_t = Tensor(X, device=device, dtype=dtype, requires_grad=False)
     Y_t = Tensor(Y.reshape(-1), device=device, dtype=dtype, requires_grad=False)
-    print(X_t.shape)
-    print(Y_t.shape)
     return X_t, Y_t
     ### END YOUR SOLUTION
 
@@ -177,7 +177,7 @@ class PTBDataset(Dataset):
         Y: Tensor, shape of (seq_len * bs, )
         Simply call get_batch() method
         """
-        if index >= len(self):  # Check if the index is out of bounds
+        if index >= (len(self) - 1) :  # Check if the index is out of bounds, weiz 2024-12-07, bug fixing , if there is still one last element, we cannot make it a batch, as it won't have a label.
             raise IndexError("Index out of range")
         return get_batch(self.batchified_data, index*self.seq_len, self.seq_len, self.device, self.dtype)
 
