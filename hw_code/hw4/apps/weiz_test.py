@@ -710,7 +710,7 @@ device=ndl.cpu()
 
 def test_language_model_training(device, pyt_model: RNNLanguageModel = None):
     set_pyt_seed(42)
-    corpus = ndl.data.Corpus(os.path.join(dlsys_home, "hw4", "data/ptb"), max_lines=20)
+    corpus = ndl.data.Corpus(os.path.join(dlsys_home, "hw4", "data/ptb"))#, max_lines=20)
     seq_len = 10
     num_examples = 100
     batch_size = 16
@@ -760,7 +760,7 @@ def test_pyt_language_model_training():
     embedding_dim=30
     lr=4.0
     weight_decay = 0.0
-    corpus = ndl.data.Corpus(os.path.join(dlsys_home, "hw4", "data/ptb"), max_lines=20)
+    corpus = ndl.data.Corpus(os.path.join(dlsys_home, "hw4", "data/ptb"))#, max_lines=20)
     vocab_size = len(corpus.dictionary)
     train_data = ndl.data.batchify(corpus.train, batch_size=batch_size, device=device, dtype="float32")
     
