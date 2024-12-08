@@ -43,6 +43,7 @@ python3 -m pytest ./tests/hw4 -l -v -k "ptb" # weiz 2024-11-20
 python3 -m pytest ./tests/hw4 -l -v -k "language_model_implementation" # weiz 2024-11-28
 python3 -m pytest ./tests/hw4 -l -v -k "language_model_training" # weiz 2024-12-07
 ```
+Notice, for RNN-based language modeling, if I use 2 epoch and the full PTB dataset, needle gets train_loss: [6.05945193], eval_loss:[6.08410817], whereas pyt gets train_loss: 6.0902, eval_loss: 6.1008.
 
 # Step3 test all
 ## All unit tests
