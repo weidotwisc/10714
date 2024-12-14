@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.5)
 project(needle C CXX)
 cmake_policy(SET CMP0146 OLD)
 
+## added by weiz 2034-06-07
+if(DEFINED ENV{PYTHON_EXECUTABLE_PATH})
+    set(Python_EXECUTABLE $ENV{PYTHON_EXECUTABLE_PATH})
+else()
+    message(FATAL_ERROR "Environment variable PYTHON_EXECUTABLE_PATH is not set")
+endif()
+## end of added by weiz 2034-06-07
+
 # find correct version of Python
 execute_process(COMMAND python3-config --prefix
   OUTPUT_VARIABLE Python_ROOT_DIR)

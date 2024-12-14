@@ -4,7 +4,9 @@ from functools import reduce
 import numpy as np
 from . import ndarray_backend_numpy
 from . import ndarray_backend_cpu
-
+import builtins # weiz 2024-04-17 in order to use the builtins.sum() function on list, sum has been redefined in this file
+from typing import Optional # weiz 2024-07-28 imported for Conv
+import needle.backend_selection as backend_selection # weiz 2024-10-26 so that i can have a reasonable default device policy
 
 # math.prod not in Python 3.7
 def prod(x):
@@ -77,7 +79,16 @@ def cpu():
 
 
 def default_device():
-    return cpu_numpy()
+    # weiz 2024-10-26 triage on backend_selection.BACKEND to decidewhat is the right default_device
+    if backend_selection.BACKEND == "np":
+        assert(0) # weiz 2024-11-05 not sure when cpu_numpy() is ever needed
+        return cpu_numpy()
+    if backend_selection.BACKEND == "nd":
+        return cpu()
+    elif backend_selection.BACKEND == "nd_cuda":
+        return cuda()
+    else:
+        assert(0) # unsupported backend yet, e.g., triton
 
 
 def all_devices():
@@ -222,7 +233,7 @@ class NDArray:
         """Restride the matrix without copying memory."""
         assert len(shape) == len(strides)
         return NDArray.make(
-            shape, strides=strides, device=self.device, handle=self._handle, offset=self._offset
+            shape, strides=strides, device=self.device, handle=self._handle
         )
 
     @property
@@ -247,7 +258,29 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # weiz 2024-10-21 to support reshape(-1) syntax
+        if(new_shape == -1):
+            total_elements = prod(self._shape)
+            new_shape = (total_elements,)
+        elif(-1 in new_shape):
+            assert new_shape.count(-1) == 1, "ValueError: can only specify one unknown dimension"
+            # Calculate the product of all elements except -1
+            product_of_rest = reduce(operator.mul, (i for i in new_shape if i != -1), 1)
+            # Compute the replacement value for -1
+            replacement_value = prod(self._shape) // product_of_rest
+             # Create a new tuple with -1 replaced by the calculated value
+            new_shape = tuple(replacement_value if i == -1 else i for i in new_shape)
+        # end of weiz 2024-10-21 to support reshape(-1) syntax 
+         
+        if prod(new_shape) != prod(self._shape):
+            raise ValueError("Product of current shape is not equal to the product!")
+        if not self.is_compact():
+            raise ValueError("The matrix is not compact!")
+        #new_strides = NDArray.compact_strides(new_shape)
+        new_strides = tuple([prod(new_shape[i+1:]) for i in range(len(new_shape))]) # weiz 2024-03-19 my own way calculating strides
+        result = NDArray.make(new_shape, strides=new_strides, device=self._device, handle=self._handle)
+        assert(result.is_compact())
+        return result
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):
@@ -272,9 +305,13 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # weiz 2024-06-13, note even if new_axes contain negative numberes, that is fine too!
+        permuted_shape = tuple(self._shape[i] for i in new_axes)
+        permuted_strides = tuple(self._strides[i] for i in new_axes)
+        return NDArray.make(permuted_shape, strides=permuted_strides, device=self._device, handle=self._handle)
         ### END YOUR SOLUTION
 
+    
     def broadcast_to(self, new_shape):
         """
         Broadcast an array to a new shape.  new_shape's elements must be the
@@ -296,7 +333,35 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        #print(self._shape) # (1,)
+        #print("!!!")
+        #print(new_shape) # (1,1,1) weiz 2024-06-17
+        
+        # weiz 2024-06-18 this if clause implements the logic that bcast from a smaller rank to a larger rank if possible
+        if(len(self._shape) < len(new_shape)): # weiz 2024-06-18 we allow a lower rank tensor to bcast to a higher rank tensor
+            num_ones_to_prepend = len(new_shape) - len(self._shape) # now we just prepend the shape with 1s and then reshape it to this expanded shape
+            expanded_shape = (1,)* num_ones_to_prepend + self._shape
+            #self._shape = expanded_shape # weiz 2024-06-20, realized we should have never changed self._shape, as _shape should have been immutable, property of a tensor, we can change it just because we bcast to a tensor A, what if later we are asked to bcast to tensor B, don't keep changing 
+            expanded_shape_strides = tuple([prod(expanded_shape[i+1:]) for i in range(len(expanded_shape))]) 
+            new_strides=list(expanded_shape_strides)
+            for i in range(len(new_shape)):
+                if(expanded_shape[i] == 1):
+                    if(new_shape[i] > 1):
+                        new_strides[i]=0
+                else:
+                    assert(expanded_shape[i] == new_shape[i])
+        # end of weiz 2024-06-18 this if clause implements the logic that bcast from a smaller rank to a larger rank if possible
+        else:
+            assert(len(self._shape) == len (new_shape))
+            new_strides=list(self._strides)
+            for i in range(len(new_shape)):
+                if(self._shape[i] == 1):
+                    if(new_shape[i] > 1):
+                        new_strides[i]=0
+                else:
+                    assert(self._shape[i] == new_shape[i])
+        return NDArray.make(new_shape, strides=tuple(new_strides), device=self._device, handle=self._handle)
+
         ### END YOUR SOLUTION
 
     ### Get and set elements
@@ -354,6 +419,14 @@ class NDArray:
         # handle singleton as tuple, everything as slices
         if not isinstance(idxs, tuple):
             idxs = (idxs,)
+        # weiz 2024-07-13 add treatment to make idxs the same length as ndim, fill in slice(None) when dimensions are smaller
+        assert(len(idxs) <= self.ndim)
+        if(len(idxs) < self.ndim):
+            filled_slice_none_tuple = (slice(None),)* (self.ndim - len(idxs))
+            idxs = idxs + filled_slice_none_tuple
+        # end of weiz 2024-07-13 add treatment to make idxs the same length as ndim, fill in slice(None) when dimensions are smaller
+        # now stuff like A[:], A[1] would work :)
+
         idxs = tuple(
             [
                 self.process_slice(s, i) if isinstance(s, slice) else slice(s, s + 1, 1)
@@ -363,7 +436,18 @@ class NDArray:
         assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_shape = []
+        new_strides = []
+        offset_lst = [idxs[idx].start * self._strides[idx] for idx in range(len(idxs))]
+        new_offset = 0
+        new_offset = builtins.sum(offset_lst)
+        # for offset in offset_lst:
+        #     new_offset += offset
+        for dim, sl in enumerate(idxs): # weiz 2023-04-17 note slice is for each dimension
+            new_shape.append(math.ceil( (sl.stop-sl.start)/sl.step ))
+            new_strides.append(self._strides[dim]*sl.step)
+        # weiz 2024-07-13 also note that even if we are get 1 element in the end, the returnred result is an NDArray, this is not the same as in Numpy, which will return a scalar value
+        return NDArray.make(shape=tuple(new_shape), strides=tuple(new_strides), device=self._device, handle=self._handle, offset=new_offset) # weiz 204-04-15, back into studying this course
         ### END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
@@ -391,10 +475,28 @@ class NDArray:
 
     ### Collection of elementwise and scalar function: add, multiply, boolean, etc
 
+    # def ewise_or_scalar_bcastable(self, other, ewise_func, scalar_func):
+    #     if(len(self.shape) < len(other.shape)):
+    #         ewise_or_scalar(self.broadcast_to(other.shape)
+
     def ewise_or_scalar(self, other, ewise_func, scalar_func):
         """Run either an elementwise or scalar version of a function,
         depending on whether "other" is an NDArray or scalar
         """
+        # weiz 2024-06-20 to make ewise ops amendable to bcast-able tensors, only catch is that other has to be "smaller" than self
+        if isinstance(other, NDArray):
+            if(self.ndim < other.ndim):
+                new_self_array = self.broadcast_to(other.shape)
+                return new_self_array.ewise_or_scalar(other, ewise_func, scalar_func)
+            elif(self.ndim > other.ndim):
+                new_other_array = other.broadcast_to(self.shape)
+                return self.ewise_or_scalar(new_other_array, ewise_func, scalar_func)
+            else:
+                if(self.shape != other.shape): # here is the only catch -- we assume self is the full tensor and other needs to broadcast to self.shape (e.g., other is a reduction result, used in logsumexp)
+                    new_other_array = other.broadcast_to(self.shape)
+                    return self.ewise_or_scalar(new_other_array, ewise_func, scalar_func)
+            
+
         out = NDArray.make(self.shape, device=self.device)
         if isinstance(other, NDArray):
             assert self.shape == other.shape, "operation needs two equal-sized arrays"
@@ -433,8 +535,9 @@ class NDArray:
 
     def __pow__(self, other):
         out = NDArray.make(self.shape, device=self.device)
-        self.device.scalar_power(self.compact()._handle, other, out._handle)
-        return out
+        return self.ewise_or_scalar(other, self.device.ewise_power, self.device.scalar_power)
+        #self.device.scalar_power(self.compact()._handle, other, out._handle)
+        #return out
 
     def maximum(self, other):
         return self.ewise_or_scalar(
@@ -536,11 +639,13 @@ class NDArray:
         if isinstance(axis, tuple) and not axis:
             raise ValueError("Empty axis in reduce")
 
-        if axis is None:
+        if axis is None: 
             view = self.compact().reshape((1,) * (self.ndim - 1) + (prod(self.shape),))
             #out = NDArray.make((1,) * self.ndim, device=self.device)
-            out = NDArray.make((1,), device=self.device)
-
+            if keepdims is False: # weiz 2024-06-19, note keepdims didn't have an impact when axis is None, weiz had fixed this issue here
+                out = NDArray.make((1,), device=self.device)
+            else:
+                out = NDArray.make((1,) * self.ndim, device=self.device)
         else:
             if isinstance(axis, (tuple, list)):
                 assert len(axis) == 1, "Only support reduction over a single axis"
@@ -573,7 +678,25 @@ class NDArray:
         Note: compact() before returning.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if isinstance(axes, int): # weiz 2024-07-13 just to play safe, but test cases don't seem to have singlenton case
+            axes = (axes,)
+        # alternative 1: use slice(None) indexing, no need to compact() on result
+        """ result = NDArray.make(self.shape, device=self.device) # weiz 2024-07-12 important: put in device, otherwise it routes to the default device which could be different
+        for axis in axes:
+            dim_along_axis = self.shape[axis]
+            for i in range(dim_along_axis):
+                dst_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (i) for idx_axis in range(self.ndim) )
+                src_indexing_tuple = tuple(slice(None) if idx_axis !=axis else (dim_along_axis-1-i) for idx_axis in range(self.ndim))
+                result[dst_indexing_tuple] = self[src_indexing_tuple] """
+
+        # alternative 2: use strides=-1 trick from lecture
+        new_offset = 0
+        new_strides_list=list(self.strides)
+        for axis in axes:
+            new_offset += (self.shape[axis]-1)*self.strides[axis]
+            new_strides_list[axis] = self.strides[axis]*(-1)
+        result = NDArray.make(shape=self.shape, strides=tuple(new_strides_list), offset=new_offset, handle=self._handle, device=self.device).compact()
+        return result
         ### END YOUR SOLUTION
 
     def pad(self, axes):
@@ -583,8 +706,90 @@ class NDArray:
         axes = ( (0, 0), (1, 1), (0, 0)) pads the middle axis with a 0 on the left and right side.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        assert(len(axes) == self.ndim)
+        new_shape_list = []
+        for pad_axis, dim_axis in zip(axes, self.shape):
+            assert(len(pad_axis) == 2)
+            new_shape_list.append(dim_axis+pad_axis[0]+pad_axis[1])
+        result = NDArray.make(tuple(new_shape_list), device=self.device)
+        result.fill(0)
+        dst_index_slice_list = []
+        for idx, pad_axis in enumerate(axes):
+            dst_index_slice_list.append(slice(pad_axis[0],self.shape[idx]+pad_axis[0],1)) # weiz 2024-10-02 bug fix, i had self.shape[idx]+pad_axis[1] before, test cases only test when pad_axis[0]==pad_axis[1], that is why i passed
+        result[tuple(dst_index_slice_list)] = self
+        #result[tuple(dst_index_slice_list)] = self[:] # weiz 2024-07-13, I could have just use result[tuple(dst_index_slice_list)] = self, but i just want to show that 
+                                                    # because I have added some code in __getitem__() to make things like [:],  [1] work with variable dimensions, this work too
+        return result
         ### END YOUR SOLUTION
+
+    # weiz 2024-07-14 
+    # axes is a tuple of axes along which dilation is added
+    # dilation is an integer , all the dilated axes apply the same amount of dilation
+    def dilate(self, axes:tuple, dilation:int):
+        # step 1 create shape w/ proper shape, each dilated dimension is increased by (1+dilation) times
+        new_shape_list=list(self.shape)
+        for axis in axes:
+            new_shape_list[axis]*=(1+dilation)
+        result = NDArray.make(shape=tuple(new_shape_list), device=self.device)
+        result.fill(0)
+
+        # step 2 assign elements
+        dest_indexing_slices=[]
+        for axis in range(self.ndim):
+            if (axis in axes):
+                sl = slice(None, None, 1+dilation)
+                dest_indexing_slices.append(sl)
+            else:
+                sl = slice(None)
+                dest_indexing_slices.append(sl)
+        result[tuple(dest_indexing_slices)] = self # always use tuple to contain slicing for __getitem__
+        return result
+    
+    def undilate(self, axes:tuple, dilation:int):
+        # step 1 create shape w/ proper shape, each undilated dimension is decreased by (1+dilation) times
+        new_shape_list = list(self.shape)
+        for axis in axes:
+            new_shape_list[axis] //= (1+dilation) # weiz 2024-07-14 use inter division to make sure each dimension is integer (e.g., 2) not a float (e.g., 2.0)
+                   # the intricacy is that later when we call NDArray.make it will call into C code, it has strong requirement of type, elementsize 4.0 is not acceptable
+        result = NDArray.make(shape=tuple(new_shape_list), device=self.device)
+
+        # step 2 assign elements
+        src_indexing_slices=[]
+        for axis in range(self.ndim):
+            if (axis in axes):
+                sl = slice(None, None, 1+dilation)
+                src_indexing_slices.append(sl)
+            else:
+                sl = slice(None)
+                src_indexing_slices.append(sl)
+        result = self[tuple(src_indexing_slices)]
+        return result
+
+    # weiz 2024-09-30, create a filter dilate that only add zeros between filter values, instead of what Zico's multiple-size filter dilation do
+    def filterdilate(self, axes:tuple, dilation:int):
+        # step 1 create shape w/ proper shape, each dilated dimension is increased by (1+dilation) times
+        new_shape_list=list(self.shape)
+        for axis in axes:
+            #new_shape_list[axis]*=(1+dilation)
+            new_shape_list[axis] = (1+dilation)*(new_shape_list[axis]-1)+1
+        result = NDArray.make(shape=tuple(new_shape_list), device=self.device)
+        result.fill(0)
+
+        # step 2 assign elements
+        dest_indexing_slices=[]
+        for axis in range(self.ndim):
+            if (axis in axes):
+                sl = slice(None, None, 1+dilation)
+                dest_indexing_slices.append(sl)
+            else:
+                sl = slice(None)
+                dest_indexing_slices.append(sl)
+        result[tuple(dest_indexing_slices)] = self # always use tuple to contain slicing for __getitem__
+        return result
+
+    #def conv(self, stride: Optional[int] = 1, padding: Optional[int] = 0)
+
+
 
 def array(a, dtype="float32", device=None):
     """Convenience methods to match numpy a bit more closely."""
@@ -631,5 +836,46 @@ def sum(a, axis=None, keepdims=False):
     return a.sum(axis=axis, keepdims=keepdims)
 
 
+
 def flip(a, axes):
     return a.flip(axes)
+
+# weiz 2024-06-13 add NDArray support of swapaxes, so that transpose ops is easier to implement for NDArray-backed tensors
+def swapaxes(a, axis0, axis1):
+    shape = a.shape
+    axes = list(tuple(range(len(shape))))
+    axes[axis0] = axis1
+    axes[axis1] = axis0
+    return a.permute(tuple(axes))
+# weiz 2024-06-20 add NDArray support for max, for the convinience of logsumexp
+def max(a, axis=None, keepdims=False):
+    return a.max(axis=axis, keepdims=keepdims)
+
+# weiz 2024-06-20 add NDArray support for squeeze, for the convinience of logsumexp
+# weiz 2024-06-30, add support for tuple of axis, for the convinience of Split ops -- actually I only need to support axis is int for Split, but I accept tuple anyway to be more flexible
+#                 note that even if the NDarray is (1,1,1), and axis is None or (0,1,2) we can still squeeze it to (), the shape will be (), the strides will be (), but the size will be 1 (as the identity of prod() is 1), so it will still work! C Array backend allocate memory by looking at the size field. 
+def squeeze(a, axis=None):
+    if(axis is None):
+        orig_shape = a.shape
+        new_shape = tuple(x for x in orig_shape if x!=1)
+        return a.reshape(new_shape)
+    else:
+        if(isinstance(axis, int)):
+            axis = tuple([axis])
+        assert (isinstance(axis, tuple))
+        orig_shape = a.shape
+        new_shape_list = []
+        for (i,x) in enumerate(orig_shape):
+            if(i not in axis):
+                new_shape_list.append(x)
+            else:
+                assert(x==1)
+        return a.reshape(tuple(new_shape_list))
+
+# weiz 2024-09-28 add support of NDArray permute for Conv2D backward
+def permute(a, axis=None):
+    return a.permute(axis)
+
+# weiz 2024-10-22, add a summation syntax sugar to make PKU solution happy
+def summation(a, axis=None, keepdims=False):
+    return a.sum(axis=axis, keepdims=keepdims)

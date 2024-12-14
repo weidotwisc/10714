@@ -1,6 +1,6 @@
 """Core data structures."""
 import needle
-from .backend_numpy import Device, cpu, all_devices
+#from .backend_numpy import Device, cpu, all_devices # weiz 2024-06-30, I am pretty sure this line is not really needed in this hw (as export NEEDLE_BACKEND=nd), as long as I include them from backend_selection see line 20
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple
 import numpy
@@ -17,7 +17,7 @@ TENSOR_COUNTER = 0
 import numpy as array_api
 NDArray = numpy.ndarray
 
-from .backend_selection import array_api, NDArray, default_device
+from .backend_selection import array_api, NDArray, default_device, Device, cpu, all_devices # weiz 2024-06-30 included Device, cpu, all_devices
 
 class Op:
     """Operator definition."""
@@ -332,6 +332,18 @@ class Tensor(Value):
         else:
             return needle.ops.AddScalar(-other)(self)
 
+    ## added by weiz 2024-06-23, in Tanh bwd()
+    # we need things like 1 - Tensor(0.58) (0.58 == tanh(1)**2)
+    # since 1 is a scalar, not a tensor, 1 - Tensor(0.58) will 
+    # call into __rsub__() , as Tensor(0.58) has a __rsub__ impl
+    # note Tensor(0.58).__rsub__(other) should be * other - Tensor(0.58) *
+    # aka, * other (a scalar, e.g., 1) - self (Tensor, e.g., Tensor(0.58)) *    
+    def __rsub__(self, other):
+        if isinstance(other, Tensor):
+            return other - self
+        else:
+            return (self - other)*(-1)
+
     def __truediv__(self, other):
         if isinstance(other, Tensor):
             return needle.ops.EWiseDiv()(self, other)
@@ -359,11 +371,11 @@ class Tensor(Value):
     def transpose(self, axes=None):
         return needle.ops.Transpose(axes)(self)
 
-
-
-
     __radd__ = __add__
     __rmul__ = __mul__
+    #__rsub__ = __sub__
+    __rmatmul__ = __matmul__
+
 
 def compute_gradient_of_variables(output_tensor, out_grad):
     """Take gradient of output node with respect to each node in node_list.
@@ -379,9 +391,21 @@ def compute_gradient_of_variables(output_tensor, out_grad):
 
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
+    for node in reverse_topo_order:
+        if node.requires_grad:
+            node.grad = sum_node_list(node_to_output_grads_list[node])
+            if node.op is None: # if true inputs node, no ops are defined
+                continue
+            partial_adjoints = node.op.gradient_as_tuple(node.grad, node) # weiz 2023-12-30, note, we need to use node.op not input_node.op, this is most IMPORTANT!!!
+            for input_node, input_node_partial_adjoint in zip(node.inputs, partial_adjoints):
+                if (input_node not in node_to_output_grads_list):
+                    node_to_output_grads_list[input_node] = [input_node_partial_adjoint]
+                else:
+                    node_to_output_grads_list[input_node].append(input_node_partial_adjoint)
+
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    #raise NotImplementedError()
     ### END YOUR SOLUTION
 
 
@@ -394,14 +418,26 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    #assert(list(node_list) == 1) # weiz 2023-12-30 there could be multiple root nodes in DAG
+    visited = set()
+    topo_order = [] # weiz 2023-12-30, really this is the dfs order
+    for node in node_list:
+        topo_sort_dfs(node, visited, topo_order)
+    return topo_order
     ### END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for n in node.inputs:
+        if(n not in visited): # technically, i don't need this if, as line 411 will guard it, at the cost of extra function calls
+            topo_sort_dfs(n, visited, topo_order)
+    if(node not in visited): # this branch is to avoid adding nodes multiple times, in DAG (richer than tree), there could be multiple paths that lead to the same node
+        visited.add(node)
+        topo_order.append(node)
+
+
     ### END YOUR SOLUTION
 
 
