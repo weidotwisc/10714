@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+.DS_Store
+.pytest_cache
+*.so
+*.*~
+build
+.gitignore
+.vscode
+*.ipynb
+*.std*

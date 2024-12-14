@@ -1,4 +1,4 @@
-"""This file defies specific implementations of devices when using numpy as NDArray backend.
+"""This file defines specific implementations of devices when using numpy as NDArray backend.
 """
 import numpy
 
