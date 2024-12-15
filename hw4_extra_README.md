@@ -11,6 +11,7 @@ git@github.com:dlsyscourse/hw4_extra.git ./hw4_extra
 # If we want to have a dry run, we do this: rsync -av --dry-run --exclude-from="exclude.txt" hw4/ hw4_extra/
 rsync -av --exclude-from="exclude.txt" hw4/ hw4_extra/ 
 ```
+The exclude.txt can be found here [exclude.txt](./hw_code/exclude.txt)
 # Step 2 Compile and make sure all the old tests can pass
 ```bash
 source ../dlsys.home
