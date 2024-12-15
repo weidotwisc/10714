@@ -13,6 +13,9 @@ rsync -av --exclude-from="exclude.txt" hw4/ hw4_extra/
 ```
 # Step 2 Compile and make sure all the old tests can pass
 ```bash
+source ../dlsys.home
+export PYTHONPATH=$DLSYS_HOME/hw4_extra/python
+make
 ./test_hw1.sh # hw1
 ./test_hw2.sh # hw2
 ./test_hw3.sh # hw3
