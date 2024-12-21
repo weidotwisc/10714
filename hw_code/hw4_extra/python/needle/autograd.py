@@ -374,7 +374,7 @@ class Tensor(Value):
     __radd__ = __add__
     __rmul__ = __mul__
     #__rsub__ = __sub__
-    __rmatmul__ = __matmul__
+    __rmatmul__ = __matmul__ # weiz 2024-12-15, 2024-version of the github seems to have commented this line as well
 
 
 def compute_gradient_of_variables(output_tensor, out_grad):
