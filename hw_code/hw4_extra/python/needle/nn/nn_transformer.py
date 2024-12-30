@@ -114,7 +114,7 @@ class MultiHeadAttention(Module):
         ### BEGIN YOUR SOLUTION
         qk_t = self.matmul(q, k) / np.sqrt(v_dim)
         if(self.causal):
-            qk_t = qk_t + Tensor(self.create_causal_mask(queries_len, keys_values_len, self.device).broadcast_to(batch_size,num_head, queries_len,keys_values_len), 
+            qk_t = qk_t + Tensor(self.create_causal_mask(queries_len, keys_values_len, self.device).broadcast_to((batch_size,num_head, queries_len,keys_values_len)), 
                                  dtype=self.dtype, device=self.device, requires_grad=False)
         probs = self.softmax(qk_t)
         probs = self.dropout(probs)
