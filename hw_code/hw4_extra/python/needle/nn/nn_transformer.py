@@ -51,21 +51,25 @@ class MultiHeadAttention(Module):
         """
         batched matrix multiplication;
         """
-        a_shape = (*a.shape[:-1], 1, *a.shape[-1:])
-        a = a.reshape(a_shape)
 
-        b_transpose_shape = (*b_transpose.shape[:-2], 1, *b_transpose.shape[-2:])
-        b_transpose = b_transpose.reshape(b_transpose_shape)
+        # weiz 2024-12-28 
+        # a: [N,H,T,d], b:[N,H,d,T], b_transpose:[N,H,T,d]
+        a_shape = (*a.shape[:-1], 1, *a.shape[-1:]) # a_shape: [N,H,T,1,d]
+        a = a.reshape(a_shape) # a: [N,H,T,1,d]
 
-        broadcast_shape = list(a_shape)
-        broadcast_shape[-2] = b_transpose_shape[-2]
-        a = a.broadcast_to(broadcast_shape)
+        b_transpose_shape = (*b_transpose.shape[:-2], 1, *b_transpose.shape[-2:]) # b_transpose_shape: [N,H,1,T,d]
+        b_transpose = b_transpose.reshape(b_transpose_shape) # b: [N,H,1,T,d]
 
-        broadcast_shape = list(b_transpose_shape)
-        broadcast_shape[-3] = a_shape[-3]
-        b_transpose = b_transpose.broadcast_to(broadcast_shape)
+        broadcast_shape = list(a_shape) # broadcast_shape [N,H,T,1,d]
+        broadcast_shape[-2] = b_transpose_shape[-2] # broadcast_shape: [N,H,T,T,d]
+        a = a.broadcast_to(broadcast_shape) # a: [N,H,T,1,d] --bcast--> [N,H,T,T,d] 
 
-        return (a * b_transpose).sum(len(a.shape) - 1)
+        broadcast_shape = list(b_transpose_shape) # broadcast_shape: [N,H,1,T,d]
+        broadcast_shape[-3] = a_shape[-3] # broadcast_shape: [N,H,T,T,d]
+        b_transpose = b_transpose.broadcast_to(broadcast_shape)# b_transpose: [N,H,1,T,d] --bcast--> [N,H,T,T,d]
+
+        return (a * b_transpose).sum(len(a.shape) - 1) # a*b_transpose: [N,H,T,T,d]; .sum(len(a.shape)-1): [N,H,T,T], notice ops.sum() will let keepdims=False when call into ndarray.sum
+                                                       # N,H,T,T is the final shape
 
     def softmax(self, logit):
         """
@@ -108,7 +112,13 @@ class MultiHeadAttention(Module):
         probs = None
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        qk_t = self.matmul(q, k) / np.sqrt(v_dim)
+        if(self.causal):
+            qk_t = qk_t + Tensor(self.create_causal_mask(queries_len, keys_values_len, self.device).broadcast_to(batch_size,num_head, queries_len,keys_values_len), 
+                                 dtype=self.dtype, device=self.device, requires_grad=False)
+        probs = self.softmax(qk_t)
+        probs = self.dropout(probs)
+        result = self.matmul(probs, v.transpose())
         ### END YOUR SOLUTION
 
         return result, probs
