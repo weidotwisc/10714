@@ -112,13 +112,13 @@ class MultiHeadAttention(Module):
         probs = None
 
         ### BEGIN YOUR SOLUTION
-        qk_t = self.matmul(q, k) / np.sqrt(v_dim)
+        qk_t = self.matmul(q, k) / np.sqrt(v_dim) # weiz 2024-12-29, was supposed to be qk^T, but matmul expect 2nd argument to be in the transpose format already
         if(self.causal):
             qk_t = qk_t + Tensor(self.create_causal_mask(queries_len, keys_values_len, self.device).broadcast_to((batch_size,num_head, queries_len,keys_values_len)), 
-                                 dtype=self.dtype, device=self.device, requires_grad=False)
+                                 dtype=self.dtype, device=self.device, requires_grad=False) # weiz 2024-12-29, the create_causal_mask result need to be broadcast to the first two dimensions too
         probs = self.softmax(qk_t)
         probs = self.dropout(probs)
-        result = self.matmul(probs, v.transpose())
+        result = self.matmul(probs, v.transpose()) # matmul() expects 2nd argument to be in transpose format, also Tensor transpose just transpose the last two dimensions, which matches perfectly what we need
         ### END YOUR SOLUTION
 
         return result, probs
