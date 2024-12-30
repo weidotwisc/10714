@@ -15,7 +15,7 @@ The exclude.txt can be found here [exclude.txt](./hw_code/exclude.txt)
 # Step 2 Compile and make sure all the old tests can pass
 ```bash
 # assuming at 10714/hw_code
-source ../dlsys.home
+source ../dlsys.profile
 export PYTHONPATH=$DLSYS_HOME/hw4_extra/python
 cd hw4_extra
 make
@@ -23,4 +23,18 @@ make
 ./test_hw2.sh # hw2
 ./test_hw3.sh # hw3
 ./test_hw4.sh # hw4
+```
+
+# Step 3 testing hw4_extra
+## Step 3.1 test each part of the homework
+```bash
+source ../dlsys.profile
+export PYTHONPATH=$DLSYS_HOME/hw4_extra/python
+cd hw4_extra
+python3 -m pytest ./tests/hw4_extra/ -l -v -k   "attention_activation" # weiz 2024-12-29, mom's birthday :)
+```
+## Step 3.2 test all the pieces
+```bash
+cd hw4_extra
+./test_hw4_extra.sh
 ```
