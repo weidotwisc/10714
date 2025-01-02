@@ -212,7 +212,38 @@ class AttentionLayer(Module):
         result = None
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # step 1 layer norm and project Q,K,V
+        q_flatten = ops.reshape(q, (batch_size*queries_len, q_dim))
+        q_flatten_prenormed = self.prenorm_q(q_flatten)
+        q_flatten_prenormed_projected = self.q_projection(q_flatten_prenormed) # q_flatten_prenormed_projected is of shape (B*T, inner_dim)
+
+        k_flatten = ops.reshape(k, (batch_size*queries_len, k_dim))
+        k_flatten_pernormed = self.prenorm_k(k_flatten)
+        k_flatten_prenormed_projected = self.k_projection(k_flatten_pernormed)
+
+        v_flatten = ops.reshape(v, (batch_size*queries_len, v_dim))
+        v_flatten_prenormed = self.prenorm_v(v_flatten)
+        v_flatten_prenormed_projected = self.v_projection(v_flatten_prenormed)
+
+
+        # step 2 split and permute q, k, v
+        q_flatten_prenormed_projected_reshaped = ops.reshape(q_flatten_prenormed_projected, (batch_size, queries_len,self.num_head, self.dim_head)) # (B,T,H,D)
+        q_bthd = ops.permute(q_flatten_prenormed_projected_reshaped, (0,2,1,3)) # (B, H, T, D), in the right shape to be used by attntion calculation
+
+        k_flatten_prenormed_projected_reshaped = ops.reshape(k_flatten_prenormed_projected, (batch_size, queries_len, self.num_head, self.dim_head))
+        k_bthd = ops.permute(k_flatten_prenormed_projected_reshaped, (0,2,1,3))
+
+        v_flatten_prenormed_projected_reshaped = ops.reshape(v_flatten_prenormed_projected, (batch_size, queries_len, self.num_head, self.dim_head))
+        v_bthd = ops.permute(v_flatten_prenormed_projected_reshaped, (0,2,1,3))
+        
+        # step 3  compute multi-head attention activation
+        x_bhtd, probs = self.attn(q_bthd, k_bthd, v_bthd)
+        x_bthd = ops.permute(x_bhtd, (0,2,1,3))
+        x = ops.reshape(x_bthd, (batch_size*queries_len, -1))
+        
+        # step 4 project to the output space
+        _result = self.out_projection(x)
+        result = ops.reshape(_result, (batch_size, queries_len, -1))
         ### END YOUR SOLUTION
 
         return result
