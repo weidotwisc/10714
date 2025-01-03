@@ -12,7 +12,8 @@ from .nn_basic import (
     Dropout,
     LayerNorm1d,
     Linear,
-    Sequential
+    Sequential,
+    Residual # weiz 2025-01-03, Residual layer is imported
 )
 
 
@@ -270,7 +271,22 @@ class TransformerLayer(Module):
         self.dtype = dtype
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # step 1 initialize attention residual block
+        attn_layer = AttentionLayer(q_features=q_features, num_head=num_head, dim_head=dim_head, out_features=q_features,dropout=dropout,causal=causal, device=device, dtype=dtype) # weiz 2025-01-02, note q_feature is the input dim, out_features is also input dim to make sure the attention layer input and output are of the same dimension
+        dropout_attn_layer = Dropout(dropout)
+        attn_sequential = Sequential(attn_layer, dropout_attn_layer)
+        self.attn_residual = Residual(attn_sequential)
+
+        # step 2 initialize MLP block
+        prenorm_q = LayerNorm1d(q_features, device=device, dtype=dtype)
+        linear1 =  Linear(q_features, hidden_size, bias=True, device=device, dtype=dtype) # weiz 2025-01-02 bias is set to be true (homework description didn't mention it explicitly)
+        relu = ReLU()
+        dropout_mlp_layer1 = Dropout(dropout)
+        linear2 =  Linear(hidden_size, q_features, bias=True, device=device, dtype=dtype) # weiz 2025-01-02, notice the output dimension is q_features, so the whole Transformer Layer transforms the input tensor to the exact same shape
+        dropout_mlp_layer2 = Dropout(dropout)
+        mlp_sequential = Sequential(prenorm_q, linear1, relu, dropout_mlp_layer1, linear2, dropout_mlp_layer2)
+        self.mlp_residual = Residual(mlp_sequential)
+
         ### END YOUR SOLUTION
 
     def forward(
@@ -286,7 +302,10 @@ class TransformerLayer(Module):
         batch_size, seq_len, x_dim = x.shape
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        x1 = self.attn_residual(x)
+        x1_reshaped = ops.reshape(x1, (batch_size*seq_len, x_dim))
+        x2 = self.mlp_residual(x1_reshaped)
+        x = ops.reshape(x2, (batch_size, seq_len, x_dim))
         ### END YOUR SOLUTION
 
         return x
