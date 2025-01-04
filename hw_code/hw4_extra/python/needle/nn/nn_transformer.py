@@ -354,7 +354,7 @@ class Transformer(Module):
 
         ### BEGIN YOUR SOLUTION
         bs, seq_len, dim = x.shape
-        pos_ids_np = np.broadcast_to(np.arange(seq_len).reshape(seq_len,1), (seq_len,bs))
+        pos_ids_np = np.broadcast_to(np.arange(seq_len).reshape(seq_len,1), (seq_len,bs)).astype(np.int32)
         pos_ids_ndl = Tensor(pos_ids_np, device=self.device,dtype=self.dtype, requires_grad=False)
         pos_ids_embedding = self.pos_embedding(pos_ids_ndl) # pos_ids_embedding now is of shape (seq_len, bs, embedding_size)
         pos_ids_embedding = ops.permute(pos_ids_embedding, (1,0,2))
