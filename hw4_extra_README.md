@@ -45,3 +45,8 @@ python3 -m pytest ./tests/hw4_extra -l -v -k "transformer_model" # weiz 2025-01-
 cd hw4_extra
 ./test_hw4_extra.sh
 ```
+## Step 3.3 Run the Transformer based language model
+```bash
+cd hw4_extra
+python apps/weiz_test_hw4_extra.py # notice still have pretty bad memory issue
+```
