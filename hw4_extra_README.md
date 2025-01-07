@@ -48,5 +48,5 @@ cd hw4_extra
 ## Step 3.3 Run the Transformer based language model
 ```bash
 cd hw4_extra
-python apps/weiz_test_hw4_extra.py # notice still have pretty bad memory issue
+python apps/weiz_test_hw4_extra.py # notice still have pretty bad memory issue, why I don't have such isses in RNN and LSTM ? maybe because my parameters size are not that large in RNN and LSTM TODO: change the python file name to something more like LM_test.py
 ```
