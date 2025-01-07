@@ -177,15 +177,26 @@ def test_transformer_model(
 # @pytest.mark.parametrize("dropout", [0.0, 0.1])
 # @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
 
-test_transformer_model(
-        batch_size=8, seq_len=5, input_dim=27,
-        hidden_size=64, num_layers=2,
-        num_head=8, dim_head=32,
-        causal=False, dropout=0.0, device=ndl.cpu())
+# test_transformer_model(
+#         batch_size=8, seq_len=5, input_dim=27,
+#         hidden_size=64, num_layers=2,
+#         num_head=8, dim_head=32,
+#         causal=False, dropout=0.0, device=ndl.cpu())
 
 
-test_transformer_model(
-        batch_size=8, seq_len=5, input_dim=27,
-        hidden_size=64, num_layers=4,
-        num_head=8, dim_head=32,
-        causal=False, dropout=0.1, device=ndl.cpu())
+# test_transformer_model(
+#         batch_size=8, seq_len=5, input_dim=27,
+#         hidden_size=64, num_layers=4,
+#         num_head=8, dim_head=32,
+#         causal=False, dropout=0.1, device=ndl.cpu()) # the originally failing one with rtol=1e-5, can pass if rtol=1e-4
+
+
+def test_transformer_language_model():
+    device = ndl.cuda()
+    corpus = ndl.data.Corpus("data/ptb")
+    train_data = ndl.data.batchify(corpus.train, batch_size=256, device=device, dtype="float32")
+    model = LanguageModel(20, len(corpus.dictionary), hidden_size=32, num_layers=1, seq_model='transformer', seq_len=20, device=device)
+    train_ptb(model, train_data, seq_len=20, n_epochs=1, device=device, lr=0.003, optimizer=ndl.optim.Adam)
+    evaluate_ptb(model, train_data, seq_len=20, device=device)
+
+test_transformer_language_model()

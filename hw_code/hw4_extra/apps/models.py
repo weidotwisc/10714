@@ -3,6 +3,7 @@ sys.path.append('./python')
 import needle as ndl
 import needle.nn as nn
 from needle.nn.nn_sequence import RNN, LSTM, Embedding
+from needle.nn.nn_transformer import Transformer # weiz 2025-01-06 import Transformer Module
 from needle.nn import Linear
 import math
 import numpy as np
@@ -48,7 +49,7 @@ class ResNet9(ndl.nn.Module):
 
 class LanguageModel(nn.Module):
     def __init__(self, embedding_size, output_size, hidden_size, num_layers=1,
-                 seq_model='rnn', device=None, dtype="float32"):
+                 seq_model='rnn', seq_len=40, device=None, dtype="float32"): # weiz 2025-01-06 seq_len is added in the assignment weblink because we need it for transformer
         """
         Consists of an embedding layer, a sequence model (either RNN or LSTM), and a
         linear layer.
@@ -78,9 +79,18 @@ class LanguageModel(nn.Module):
         elif seq_model == "lstm":
             self.seq_model_type = "lstm"
             self.seq_model = LSTM(input_size=embedding_size, hidden_size=hidden_size, num_layers=num_layers, device=device, dtype=dtype)
+        elif seq_model == "transformer": # weiz 2025-01-06 support transformer
+            self.seq_model_type = "transformer"
+            self.seq_model = Transformer(embedding_size=embedding_size, hidden_size=hidden_size, num_layers=num_layers, sequence_len=seq_len, batch_first=False,device=device, dtype=dtype)
         else:
             raise ValueError(f"Unknown seq_model: {seq_model}")
-        self.linear_layer = Linear(in_features=hidden_size, out_features=self.vocab_size, device=device, dtype=dtype)
+        
+        if seq_model == "rnn" or seq_model == "lstm":
+            self.linear_layer = Linear(in_features=hidden_size, out_features=self.vocab_size, device=device, dtype=dtype)
+        elif seq_model == "transformer":
+            self.linear_layer = Linear(in_features=embedding_size, out_features=self.vocab_size, device=device, dtype=dtype)
+        else:
+            raise ValueError(f"Unknown seq_model: {seq_model}")        
 
         ### END YOUR SOLUTION
 
@@ -98,13 +108,24 @@ class LanguageModel(nn.Module):
             else h is tuple of (h0, c0), each of shape (num_layers, bs, hidden_size)
         """
         ### BEGIN YOUR SOLUTION
-        seq_len, bs = x.shape
-        x_embedding = self.embedding_layer(x)
-        x_seq_projection, h_output = self.seq_model(x_embedding, h) # x_seq_projection is of shape (seq_len, bs, hidden_size)
-        x_seq_projection = x_seq_projection.reshape((seq_len*bs, self.hidden_size))
-        logits = self.linear_layer(x_seq_projection) #  logits is of shape(seq_len*bs, vocab_size)
-        logits = logits.reshape((seq_len*bs, self.vocab_size))
-        return logits, h_output
+        if (self.seq_model_type == "rnn" or self.seq_model_type == "lstm"):
+            seq_len, bs = x.shape
+            x_embedding = self.embedding_layer(x)
+            x_seq_projection, h_output = self.seq_model(x_embedding, h) # x_seq_projection is of shape (seq_len, bs, hidden_size)
+            x_seq_projection = x_seq_projection.reshape((seq_len*bs, self.hidden_size))
+            logits = self.linear_layer(x_seq_projection) #  logits is of shape(seq_len*bs, vocab_size)
+            logits = logits.reshape((seq_len*bs, self.vocab_size))
+            return logits, h_output
+        elif (self.seq_model_type == "transformer"):
+            seq_len, bs = x.shape
+            x_embedding = self.embedding_layer(x)
+            x1, h = self.seq_model(x_embedding) # weiz 2025-01-06 h is really just a placeholder here to keep consistent with RNN/LSTM APIs
+            x2 = x1.reshape((seq_len*bs, -1))
+            logits = self.linear_layer(x2)
+            logits = logits.reshape((seq_len*bs, self.vocab_size))
+            return logits, h # weiz 2025-01-06 to have h here just to keep a consistent LanguageModel with RNN/LSTM base
+        else:
+            raise ValueError(f"Unknown seq_model_type: {self.seq_model_type}")
         ### END YOUR SOLUTION
 
 

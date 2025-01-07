@@ -349,7 +349,7 @@ class Transformer(Module):
         x, h=None
     ):
 
-        if not self.batch_first:
+        if not self.batch_first: # weiz 2025-01-06, this is just to keep consistent with the RNN/LSTM model input tensor shape (seq, bs, embedding_dim)
             x = ops.transpose(x, axes=(0, 1))
 
         ### BEGIN YOUR SOLUTION
@@ -362,7 +362,7 @@ class Transformer(Module):
         x = self.transformer_layers(x)
         ### END YOUR SOLUTION
 
-        if not self.batch_first:
+        if not self.batch_first: # weiz 2025-01-06, this is just to keep consistent with the RNN/LSTM model input tensor shape (seq, bs, embedding_dim)
             x = ops.transpose(x, axes=(0, 1))
 
-        return x, init.zeros_like(x)
+        return x, init.zeros_like(x) # weiz 2025-01-06 the init.zeros_like(x) is just a placeholder so that it can be consistent with RNN models return type: x, h (aka a tuple)
