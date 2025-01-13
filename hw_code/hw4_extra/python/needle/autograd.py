@@ -393,7 +393,7 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
     for node in reverse_topo_order:
         if node.requires_grad:
-            node.grad = sum_node_list(node_to_output_grads_list[node])
+            node.grad = sum_node_list(node_to_output_grads_list[node]) # weiz 2025-01-12 just realized the gradident of a Tensor is filled up here!
             if node.op is None: # if true inputs node, no ops are defined
                 continue
             partial_adjoints = node.op.gradient_as_tuple(node.grad, node) # weiz 2023-12-30, note, we need to use node.op not input_node.op, this is most IMPORTANT!!!

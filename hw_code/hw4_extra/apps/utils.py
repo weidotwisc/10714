@@ -353,5 +353,84 @@ def test_rnnlm_parity(vocab_size=100, input_size=30, hidden_size=10, num_layers=
     rnnlm_parity_multi_seq(pyt_model=pyt_model, ndl_model=ndl_model, seq_len=seq_len, bs=bs)
     pyt_model.zero_grad()
 
-#set_pyt_seed(42)
-test_rnnlm_parity(vocab_size=100, input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=16, device=default_device(), dtype="float32")
+set_pyt_seed(42)
+# test_rnnlm_parity(vocab_size=100, input_size=30, hidden_size=10, num_layers=3, seq_len=10, bs=16, device=default_device(), dtype="float32")
+
+
+### weiz 2025-01-11 Transformer model parity
+# Task 1 Test MultiHeadAttention, we made the simplification that
+# (1) q k v having the same dimension. As a result, pyt model has in_proj_weight as trainable parameters, which are of (3 * embed_dim) * embed_dim
+# (2) no bias in q k v projection matrices, as our needle AttentionLayer doesn't support it
+# (3) doesn't turn on dropout to make comparison easier
+def multi_head_attn_converter(pyt_model : torch.nn.MultiheadAttention = None, ndl_model: ndl.nn.AttentionLayer = None, device=default_device(), dtype="float32"):
+    # for simplicity, I only support convert pyt model to ndl_model
+    assert ((pyt_model is not None) and (ndl_model is None))
+    
+    q_features = pyt_model.embed_dim
+    out_features = pyt_model.embed_dim # in pytorch out_features is always the same as ebmed_dim
+    num_head = pyt_model.num_heads
+    dim_head = pyt_model.head_dim
+    # weiz notice w: projection weights for q, k and v, packed into a single tensor. Weights
+    #    are packed along dimension 0, in q, k, v order.
+    q_proj_np, k_proj_np, v_proj_np = np.split(pyt_model.in_proj_weight.detach().numpy().T, 3 ,axis=-1)
+    ndl_model = ndl.nn.AttentionLayer(q_features=q_features, num_head=num_head, dim_head=dim_head, out_features=out_features,causal=True, device=device, dtype=dtype)
+    w_out_proj_np = pyt_model.out_proj.weight.detach().numpy().T
+    ndl_model.q_projection = ndl.nn.Linear(in_features=q_features, out_features=q_features, bias=False, device=device, dtype=dtype)
+    ndl_model.q_projection.weight = ndl.nn.Parameter(q_proj_np, device=device, dtype=dtype, requires_grad=True)
+    ndl_model.k_projection = ndl.nn.Linear(in_features=q_features, out_features=q_features, bias=False, device=device, dtype=dtype)
+    ndl_model.k_projection.weight = ndl.nn.Parameter(k_proj_np, device=device, dtype=dtype, requires_grad=True)
+    ndl_model.v_projection = ndl.nn.Linear(in_features=q_features, out_features=q_features, bias=False, device=device, dtype=dtype)
+    ndl_model.v_projection.weight = ndl.nn.Parameter(v_proj_np, device=device, dtype=dtype, requires_grad=True)
+    ndl_model.out_projection = ndl.nn.Linear(q_features, out_features, bias=False, device=device, dtype=dtype)
+    ndl_model.out_projection.weight = ndl.nn.Parameter(w_out_proj_np,device=device, dtype=dtype, requires_grad=True)
+    return ndl_model
+    
+    
+def multi_head_attn_parity(pyt_model: torch.nn.MultiheadAttention = None, ndl_model: ndl.nn.AttentionLayer = None, bs=16, seq_len=30):
+    '''
+    Given two models, test if they are the same
+    '''
+    assert(pyt_model is not None and ndl_model is not None)
+    q_features = pyt_model.embed_dim
+    out_features = pyt_model.embed_dim
+    # step 1 fwd pass a tensor X
+    X_np = np.random.randn(bs,seq_len, q_features).astype("float32")
+    X_pyt = torch.tensor(X_np, dtype=torch.float32)
+    causal_mask_pyt = torch.triu(torch.ones(seq_len, seq_len)*float("-inf"), diagonal=1)
+    layer_norm_pyt = torch.nn.LayerNorm(normalized_shape=q_features) # pyt layernorm uses the same eps=1e-5 as in needle
+    x_normalized_pyt = layer_norm_pyt(X_pyt) # weiz one key difference between pyt and torch 
+    logits_pyt, attn_pyt = pyt_model(x_normalized_pyt, x_normalized_pyt, x_normalized_pyt, attn_mask = causal_mask_pyt, need_weights=True, average_attn_weights=False)
+    X_ndl = ndl.Tensor(X_np, device=default_device(), dtype="float32")
+    logits_ndl = ndl_model(X_ndl) # notice in needle, AttentionLayer doesn't return attention matrix
+    np.testing.assert_allclose(logits_pyt.detach().numpy(), logits_ndl.detach().numpy(), atol=1e-5, rtol=1e-5)
+
+    # step 2 backward and compares gradients
+    logits_pyt.sum().backward()
+    logits_ndl.sum().backward()
+    w_out_proj_grad_pyt_np = pyt_model.out_proj.weight.grad.detach().numpy().T
+    w_out_proj_grad_ndl_np = ndl_model.out_projection.weight.grad.detach().numpy()
+    np.testing.assert_allclose(w_out_proj_grad_pyt_np, w_out_proj_grad_ndl_np, atol=1e-4, rtol=1e-4)
+    q_proj_grad_pyt_np, k_proj_grad_pyt_np, v_proj_grad_pyt_np = np.split(pyt_model.in_proj_weight.grad.detach().numpy().T, 3 ,axis=-1)
+    q_proj_grad_ndl_np = ndl_model.q_projection.weight.grad.detach().numpy()
+    k_proj_grad_ndl_np = ndl_model.k_projection.weight.grad.detach().numpy()
+    v_proj_grad_ndl_np = ndl_model.v_projection.weight.grad.detach().numpy()
+    np.testing.assert_allclose(q_proj_grad_pyt_np, q_proj_grad_ndl_np, atol=1e-4, rtol=1e-4)
+    np.testing.assert_allclose(k_proj_grad_pyt_np, k_proj_grad_ndl_np, atol=1e-4, rtol=1e-4)
+    np.testing.assert_allclose(v_proj_grad_pyt_np, v_proj_grad_ndl_np, atol=1e-4, rtol=1e-4)
+    # np.testing.assert_allclose(pyt_model.weight.grad.detach().numpy().transpose(), ndl_model.weight.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    # np.testing.assert_allclose(pyt_model.bias.grad.detach().numpy(), ndl_model.bias.grad.detach().numpy(), atol=1e-5, rtol=1e-5)
+    
+    
+def test_multi_head_attn_parity(bs=16, seq_len=10, q_features=64, num_heads=8, device=default_device(), dtype="float32"):
+    # Direction 1: src:pyt dest:ndl
+    
+    # in PyT's MultiHeadAttention module, (1) input and output features are the same as embed_dim, (2) we turn off dropout and bias to simply testing
+    # (3) use batch_first=True to work with input bs x seq_len x embed_dim
+    pyt_model = torch.nn.MultiheadAttention(embed_dim=q_features,num_heads=num_heads, dropout=0, bias=False,dtype=torch.float32, batch_first=True)
+    ndl_model = multi_head_attn_converter(pyt_model=pyt_model, ndl_model=None, device=device, dtype=dtype)
+    multi_head_attn_parity(pyt_model=pyt_model, ndl_model=ndl_model, bs=bs, seq_len=seq_len)
+   
+
+bs, seq_len, q_features, num_heads = 16, 10, 256, 8 # weiz 2025-01-12 notice that if q_features=64, I can even use atol, rtol 1e-5 to pass all the tests
+test_multi_head_attn_parity(bs=bs, seq_len=seq_len,q_features=q_features, num_heads=num_heads)
+   
