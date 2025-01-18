@@ -49,7 +49,10 @@ class ResNet9(ndl.nn.Module):
 
 class LanguageModel(nn.Module):
     def __init__(self, embedding_size, output_size, hidden_size, num_layers=1,
-                 seq_model='rnn', seq_len=40, device=None, dtype="float32"): # weiz 2025-01-06 seq_len is added in the assignment weblink because we need it for transformer
+                 seq_model='rnn', seq_len=40, device=None, dtype="float32", *,
+        num_head: int = 8,
+        dim_head: int = 32): # weiz 2025-01-06 seq_len is added in the assignment weblink because we need it for transformer
+                             # weiz 2025-01-18 add support for num_head and dim_head
         """
         Consists of an embedding layer, a sequence model (either RNN or LSTM), and a
         linear layer.
@@ -81,7 +84,8 @@ class LanguageModel(nn.Module):
             self.seq_model = LSTM(input_size=embedding_size, hidden_size=hidden_size, num_layers=num_layers, device=device, dtype=dtype)
         elif seq_model == "transformer": # weiz 2025-01-06 support transformer
             self.seq_model_type = "transformer"
-            self.seq_model = Transformer(embedding_size=embedding_size, hidden_size=hidden_size, num_layers=num_layers, sequence_len=seq_len, batch_first=False,device=device, dtype=dtype)
+            self.seq_model = Transformer(embedding_size=embedding_size, hidden_size=hidden_size, num_layers=num_layers, sequence_len=seq_len, batch_first=False,
+                                         num_head=num_head, dim_head=dim_head, device=device, dtype=dtype)
         else:
             raise ValueError(f"Unknown seq_model: {seq_model}")
         

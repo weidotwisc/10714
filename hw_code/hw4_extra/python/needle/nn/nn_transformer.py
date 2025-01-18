@@ -354,10 +354,12 @@ class Transformer(Module):
 
         ### BEGIN YOUR SOLUTION
         bs, seq_len, dim = x.shape
-        pos_ids_np = np.broadcast_to(np.arange(seq_len).reshape(seq_len,1), (seq_len,bs)).astype(np.int32)
+        pos_ids_np = np.broadcast_to(np.arange(seq_len).reshape(seq_len,1), (seq_len,bs)).astype(np.int32) # weiz 2025-01-15 the reason that 
+                                                                                                    # we need to have seq_len by bs shape is because our Embedding Layer 
+                                                                                                    # expects (seq_len, bs)
         pos_ids_ndl = Tensor(pos_ids_np, device=self.device,dtype=self.dtype, requires_grad=False)
         pos_ids_embedding = self.pos_embedding(pos_ids_ndl) # pos_ids_embedding now is of shape (seq_len, bs, embedding_size)
-        pos_ids_embedding = ops.permute(pos_ids_embedding, (1,0,2))
+        pos_ids_embedding = ops.permute(pos_ids_embedding, (1,0,2)) # weiz 2025-01-15, now pos_ids_embedding becomes (bs,seq_len, embedding_size), which is ready for Transformer to use
         x = x + pos_ids_embedding
         x = self.transformer_layers(x)
         ### END YOUR SOLUTION

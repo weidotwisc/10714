@@ -105,6 +105,8 @@ def simple_max_test():
     #print(max_val.grad.data)
 
 
-set_pyt_seed(42)
-try_cross_entropy_softmax_track_max()
+#set_pyt_seed(42)
+# try_cross_entropy_softmax_track_max()
 #simple_max_test()
+
+
