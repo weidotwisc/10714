@@ -47,6 +47,18 @@ class PyTTransformerLanguageModel(torch.nn.Module):
         out = self.fc(x) 
         return out
 
+# weiz 2025-01-19 convert batch from seq_len by bs (RNN like) to  bs by seq_len (Transformer)  
+def convert_batch_to_batch_first(sequences: np.ndarray, targets:np.ndarray):
+    assert(len(sequences.shape) == 2)
+    seq_len, bs = sequences.shape
+    assert(len(targets.shape)==1)
+    assert(seq_len * bs == targets.shape[0])
+    sequences = sequences.transpose()
+    targets = targets.reshape(seq_len, bs)
+    targets = targets.transpose()
+    targets = targets.reshape(-1)
+    return sequences, targets
+
 
 def test_pyt_language_model_training():
     set_pyt_seed(42)
@@ -90,14 +102,14 @@ def test_pyt_language_model_training():
     ds = ndl.data.PTBDataset(train_data, seq_len=seq_len, dtype="float32", device=None)
     
    
-
+    model.train() # weiz 2025-01-19, add model.train()
     for epoch in range(n_epochs):
         total_loss = 0
         total_samples = 0
         for sequences, targets in ds:
-            sequences = np.transpose(sequences, (-1,-2)) # weiz 2025-01-17, sequences was in seq_len x bs integers, now make it bs x seq_len, notice they should be only integers now!!! as model embedding will make the extra embed_dim!!!
-            sequences = torch.Tensor(sequences.numpy()).to(torch.long).to(device=device)
-            targets = torch.Tensor(targets.numpy()).to(torch.long).to(device=device)
+            sequences, targets = convert_batch_to_batch_first(sequences.numpy(), targets.numpy())
+            sequences = torch.Tensor(sequences).to(torch.long).to(device=device)
+            targets = torch.Tensor(targets).to(torch.long).to(device=device)
             optimizer.zero_grad()
         
             # Detach the hidden state to avoid backpropagating through the entire sequence history
@@ -112,15 +124,21 @@ def test_pyt_language_model_training():
         print(f"Training Epoch {epoch + 1}/{n_epochs}, Loss: {total_loss / total_samples:.4f}")
     total_loss = 0
     total_samples = 0
-    for sequences, targets in ds:
-        sequences = np.transpose(sequences, (-1,-2)) # weiz 2025-01-18, sequences was in seq_len x bs integers, now make it bs x seq_len, notice they should be only integers now!!! as model embedding will make the extra embed_dim!!!
-        sequences = torch.Tensor(sequences.numpy()).to(torch.long).to(device=device)
-        targets = torch.Tensor(targets.numpy()).to(torch.long).to(device=device)
-        outputs = model(sequences)
-        loss = criterion(outputs.view(-1, vocab_size), targets.view(-1))
-        total_loss += loss.item() * len(targets)
-        total_samples += len(targets)
-    print(f"Eval Loss: {total_loss / total_samples:.4f}")
+    correct = 0
+    model.eval() # weiz 2025-01-19 add model.eval()
+    with torch.no_grad():
+        for sequences, targets in ds:
+            sequences, targets = convert_batch_to_batch_first(sequences.numpy(), targets.numpy())
+            sequences = torch.Tensor(sequences).to(torch.long).to(device=device)
+            targets = torch.Tensor(targets).to(torch.long).to(device=device)
+            outputs = model(sequences)
+            loss = criterion(outputs.view(-1, vocab_size), targets.view(-1))
+            total_loss += loss.item() * len(targets)
+            total_samples += len(targets)
+            outputs_np = outputs.detach().cpu().numpy().reshape(-1, outputs.shape[-1]) # notice in pyt impl, outputs are of bs * seq_len * vocab_size
+            correct += np.sum(np.argmax(outputs_np, axis=1) == targets.detach().cpu().numpy())
+        
+        print(f"Eval Loss: {total_loss / total_samples:.4f} Eval correctness: {correct / total_samples: .4f}")
     
    
 test_pyt_language_model_training()
