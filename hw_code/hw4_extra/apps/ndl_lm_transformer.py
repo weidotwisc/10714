@@ -31,7 +31,7 @@ def test_transformer_language_model():
     
     # step 2 define optimizer
     lr = 0.003
-    n_epochs = 1
+    n_epochs = 10
     train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device, lr=lr, optimizer=ndl.optim.Adam)
     evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
 
