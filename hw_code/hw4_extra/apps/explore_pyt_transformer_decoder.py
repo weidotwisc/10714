@@ -24,9 +24,15 @@ def multihead_attention(X, mask, heads, W_KQV, W_out):
     return (attn@V).swapaxes(1,2).reshape(N,T,d) @ W_out, attn
 
 def transformer_post_norm(X, mask, heads, W_KQV, W_out, W_ff1, W_ff2, eps):
-    Z = layer_norm(multihead_attention(X, mask, heads, W_KQV, W_out)[0] + X, eps)
-    return layer_norm(Z + relu(Z@W_ff1)@W_ff2, eps)
+    # the original lecture based implementation
+    #Z = layer_norm(multihead_attention(X, mask, heads, W_KQV, W_out)[0] + X, eps)
+    #return layer_norm(Z + relu(Z@W_ff1)@W_ff2, eps)
+    # just to match pre_norm numpy implementation's naming convention
+    X1 = multihead_attention(X, mask, heads, W_KQV, W_out)[0] + X
+    X2 = layer_norm(X1, eps)
+    return layer_norm(X2 +relu(X2@W_ff1)@W_ff2, eps)
 
+    
 
 def transformer_pre_norm(X, mask, heads, W_KQV, W_out, W_ff1, W_ff2, eps):
     X1 = multihead_attention(layer_norm(X, eps), mask, heads, W_KQV, W_out)[0] + X
