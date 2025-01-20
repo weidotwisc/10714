@@ -45,10 +45,28 @@ python3 -m pytest ./tests/hw4_extra -l -v -k "transformer_model" # weiz 2025-01-
 cd hw4_extra
 ./test_hw4_extra.sh
 ```
-## Step 3.3 Run the Transformer based language model
+## Step 3.3 test AttentionLayer and TransformerLayer parity against PyTorch for fwd and bwd (this is my own tests)
 ```bash
 cd hw4_extra
-python apps/weiz_test_hw4_extra.py # notice still have pretty bad memory issue (OOM on 16GB v100, but okay on 80GB A100, why I don't have such isses in RNN and LSTM ? maybe because my parameters size are not that large in RNN and LSTM TODO: change the python file name to something more like LM_test.py
-# after 10 epochs (running on A100 80GB gpu), I get
-# eval_loss = [5.33069158], eval_acc = 0.18607346339779005
+python apps/utils.py # this is to test AttentionLayer parity
+python apps/explore_pyt_transformer_decoder.py
 ```
+
+## Step 3.4 Run the Transformer based language model (PyTorch vs Needle)
+```bash
+cd hw4_extra
+python apps/pyt_lm_transformer.py # 10 epochs
+python apps/ndl_lm_transformer.py # 10 epochs
+```
+The results look like this
+```bash
+python apps/ndl_lm_transformer.py
+(1 epoch)
+eval_loss = [6.07330316], eval_acc = 0.12936269854972376
+(10 epoch)
+eval_loss = [4.70171681], eval_acc = 0.22103655904696132
+python apps/pyt_lm_transformer.py
+Eval Loss: 5.8096 Eval correctness:  0.1304 ( 1 epoch )
+Eval Loss: 4.8413 Eval correctness:  0.1997 (10 epoch)
+```
+Finally, I have fixed the batch first issue in pytorch dataloading part so that pytorch also has decent model performance. Done on 2025-01-19 :)
