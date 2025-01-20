@@ -29,8 +29,8 @@ class PyTTransformerLanguageModel(torch.nn.Module):
                                                                  batch_first=True,
                                                                 norm_first=True, device=device)
             transformer_layers.append(transformer_layer)
-        self.transformer_layers = torch.nn.Sequential(*transformer_layers)
-        #self.trans
+        #self.transformer_layers = torch.nn.Sequential(*transformer_layers)
+        self.transformer_layers = transformer_layers
         self.fc = torch.nn.Linear(embedding_dim, vocab_size, device=device)
 
     def forward(self, x):
@@ -41,9 +41,10 @@ class PyTTransformerLanguageModel(torch.nn.Module):
         #assert(x_emb.shape == x_pos.shape)
         #bs,seq_len, embedding_dim = x_pos.shape
         #assert(embedding_dim == self.embedding_dim)
-        x_real = x_emb + x_pos # weiz x_pos is bcasted
-        x_real = self.transformer_layers(x_real)
-        out = self.fc(x_real) # TODO: need to flatten!
+        x = x_emb + x_pos # weiz x_pos is bcasted
+        for transform_layer in self.transformer_layers:
+            x = transform_layer(x, self.M)
+        out = self.fc(x) 
         return out
 
 
