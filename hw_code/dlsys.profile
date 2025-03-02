@@ -11,7 +11,8 @@ if [ "$HOSTNAME" = "f5" ]; then
 elif [[ "$HOSTNAME" == ccc* ]]; then
     export PYTHON_EXECUTABLE_PATH="/dccstor/weiz/.pyenv/versions/3.11.0/envs/codenet/bin/python"
 elif [[ "$HOSTNAME" == lsf* ]]; then
-    export PYTHON_EXECUTABLE_PATH="/gpfs/users/weiz/.pyenv/versions/codenet/bin/python"
+    #export PYTHON_EXECUTABLE_PATH="/gpfs/users/weiz/.pyenv/versions/codenet/bin/python"
+    export PYTHON_EXECUTABLE_PATH="/gpfs/users/weiz/.pyenv/versions/fms/bin/python" # weiz 2025-03-02 lfs 4.14
 else
     echo "Hostname does not match any specified pattern."
     exit 1
