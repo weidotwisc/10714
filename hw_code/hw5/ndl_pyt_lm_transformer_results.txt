@@ -1,0 +1,10 @@
+python apps/ndl_lm_transformer.py
+(1 epoch)
+eval_loss = [6.07330316], eval_acc = 0.12936269854972376
+(10 epoch)
+eval_loss = [4.70171681], eval_acc = 0.22103655904696132
+
+
+python apps/pyt_lm_transformer.py
+Eval Loss: 5.8096 Eval correctness:  0.1304 ( 1 epoch )
+Eval Loss: 4.8413 Eval correctness:  0.1997 (10 epoch)
