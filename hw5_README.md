@@ -1,60 +1,41 @@
 # working directory
-hw_code/hw4_extra
+hw_code/hw5 (Notice this at the beginning of carbon copy of hw4_extra
 
 # Step 1 Prep
-```bash
-cd 10714/hw_code
-git@github.com:dlsyscourse/hw4_extra.git ./hw4_extra
-
-# The purpose of following command is to copy all the files from hw4 to hw4_extra, overwrite them and keep the new ones in hw4_extra
-# won't copy any file pattern listed in "exclude.txt".
-# If we want to have a dry run, we do this: rsync -av --dry-run --exclude-from="exclude.txt" hw4/ hw4_extra/
-rsync -av --exclude-from="exclude.txt" hw4/ hw4_extra/ 
+```bash # on lsf00
+source ~/envs/fms.profile 
+pyenv which python
+pip3 install --upgrade --no-deps git+https://github.com/dlsyscourse/mugrade.git
+pip3 install pybind11
+pip3 install numdifftools
+pip install cmake --upgrade 
+pip install pybind11
+pip install pytest
+pip install argparse
+pip install pytest
 ```
 The exclude.txt can be found here [exclude.txt](./hw_code/exclude.txt)
 # Step 2 Compile and make sure all the old tests can pass
+## Step 2.1 unit tests
 ```bash
 # assuming at 10714/hw_code
 source ../dlsys.profile
-export PYTHONPATH=$DLSYS_HOME/hw4_extra/python
-cd hw4_extra
+export PYTHONPATH=$DLSYS_HOME/hw5/python
+cd hw5
 make
 ./test_hw1.sh # hw1
 ./test_hw2.sh # hw2
 ./test_hw3.sh # hw3
 ./test_hw4.sh # hw4
+./test_hw4_Extra.sh # hw4_extra
 ```
-
-# Step 3 testing hw4_extra
-## Step 3.1 test each part of the homework
+## Step 2.2 hw4_extra transformer app test 
 ```bash
-source ../dlsys.profile
-export PYTHONPATH=$DLSYS_HOME/hw4_extra/python
-cd hw4_extra
-# part 1 multi-head attention activation layer
-python3 -m pytest ./tests/hw4_extra/ -l -v -k   "attention_activation" # weiz 2024-12-29, mom's birthday :)
-# part 2 implementing the self-attention layer with trainable parameters
-python3 -m pytest ./tests/hw4_extra  -l -v -k "attention_layer" # weiz 2025-01-02
-# part 3 Implementing a prenorm residual Transformer Layer
-python3 -m pytest ./tests/hw4_extra -l -v -k "transformer_layer" # weiz 2025-01-02
-# part 4 Implementing the Transformer model                                     
-python3 -m pytest ./tests/hw4_extra -l -v -k "transformer_model" # weiz 2025-01-03 # notice that I have changed the rtol from 1e-5 to 1e-4 to make all tests passed, otherwise 1 of the 32 test cases will fail on 1 of the 1080 elements.
-```
-## Step 3.2 test all the pieces
-```bash
-cd hw4_extra
-./test_hw4_extra.sh
-```
-## Step 3.3 test AttentionLayer and TransformerLayer parity against PyTorch for fwd and bwd (this is my own tests)
-```bash
-cd hw4_extra
 python apps/utils.py # this is to test AttentionLayer parity
 python apps/explore_pyt_transformer_decoder.py
 ```
-
-## Step 3.4 Run the Transformer based language model (PyTorch vs Needle)
+## Step 2.3 Run the Transformer based language model (PyTorch vs Needle)
 ```bash
-cd hw4_extra
 python apps/pyt_lm_transformer.py # 10 epochs
 python apps/ndl_lm_transformer.py # 10 epochs
 ```
@@ -64,9 +45,8 @@ python apps/ndl_lm_transformer.py
 (1 epoch)
 eval_loss = [6.07330316], eval_acc = 0.12936269854972376
 (10 epoch)
-eval_loss = [4.70171681], eval_acc = 0.22103655904696132
+eval_loss = [4.70171681], eval_acc = 0.22103655904696132 # (the exact same result as old python env)
 python apps/pyt_lm_transformer.py
-Eval Loss: 5.8096 Eval correctness:  0.1304 ( 1 epoch )
-Eval Loss: 4.8413 Eval correctness:  0.1997 (10 epoch)
+Eval Loss: 4.8383 Eval correctness:  0.1998 (10 epoch)
 ```
-Finally, I have fixed the batch first issue in pytorch dataloading part so that pytorch also has decent model performance. Done on 2025-01-19 :)
+weiz 2025-03-10 ( i actually finished this on 2025-03-02 but forgot to update the README)
