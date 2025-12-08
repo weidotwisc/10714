@@ -1,4 +1,6 @@
 import sys
+
+from needle import backend_ndarray
 sys.path.append('./python')
 sys.path.append('./apps')
 import numpy as np
@@ -15,7 +17,8 @@ from simple_ml import *
 from models import LanguageModel
 
 def test_transformer_language_model():
-    device = ndl.cuda()
+    device = backend_ndarray.ndarray.default_device()
+    #device = ndl.cuda()
     corpus = ndl.data.Corpus("data/ptb")
     train_data = ndl.data.batchify(corpus.train, batch_size=256, device=device, dtype="float32")
     # step 1 define model
