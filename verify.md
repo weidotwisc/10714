@@ -27,9 +27,14 @@ fi
 (2) `settings.json` (called when vscode is started and will load enviroments above properly)
 ```json
 {
+    // code static analysis can index ./python as library
     "python.analysis.extraPaths": [
-        "./python"
+        "${workspaceFolder}/python"
     ],
+    // terminal will get correct PYTHONPATH
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "$PYTHONPATH:${workspaceFolder}/python"
+    },
     "terminal.integrated.profiles.linux": {
         "fmsbash": {
             "path": "/bin/bash",
@@ -44,9 +49,9 @@ fi
 }
 ```
 ### Create ```/gpfs/users/weiz/10714/hw_code/hw5/apps/.env``` file 
-This file defines all enviroment variables relavent to the running environment of VSCode and contains following content
+This file defines all enviroment variables relavent to the running environment of VSCode and contains following content *note I cannot use export here, as it is not a syntax accpeted in vscode*
 ```bash
-export PYTHONPATH=$PYTHONPATH:/gpfs/users/weiz/10714/hw_code/hw5/python
+PYTHONPATH=$PYTHONPATH:/gpfs/users/weiz/10714/hw_code/hw5/python
 ```
 Note this file is referred in the `settings.json` and only sourced during each dynamic run, so you won't see anything in vscode terminal even if you do ```echo $PYTHONPATH```. Also things like ```BACKEND``` (```nd | nd_cuda| np ```) should be defined here as well
 
