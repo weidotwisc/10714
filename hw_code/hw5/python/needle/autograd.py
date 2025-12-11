@@ -305,7 +305,8 @@ class Tensor(Value):
     def numpy(self):
         data = self.realize_cached_data()
         if array_api is numpy:
-            return data
+            return numpy.array(data) # weiz: 2025-12-09, pick up fix from https://github.com/dlsyscourse/hw1/pull/27/commits/9dae56785ff7ac0427438c7c8b9369211f66b3ba
+            #return data
         return data.numpy()
 
     def __add__(self, other):
@@ -418,7 +419,7 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    #assert(list(node_list) == 1) # weiz 2023-12-30 there could be multiple root nodes in DAG
+    #assert(len(node_list) == 1) # weiz 2023-12-30 there could be multiple root nodes in DAG
     visited = set()
     topo_order = [] # weiz 2023-12-30, really this is the dfs order
     for node in node_list:

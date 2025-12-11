@@ -429,6 +429,7 @@ def test_multi_head_attn_parity(bs=16, seq_len=10, q_features=64, num_heads=8, d
     pyt_model = torch.nn.MultiheadAttention(embed_dim=q_features,num_heads=num_heads, dropout=0, bias=False,dtype=torch.float32, batch_first=True)
     ndl_model = multi_head_attn_converter(pyt_model=pyt_model, ndl_model=None, device=device, dtype=dtype)
     multi_head_attn_parity(pyt_model=pyt_model, ndl_model=ndl_model, bs=bs, seq_len=seq_len)
+    print("test_multi_head_attn_parity passed!")
    
 
 bs, seq_len, q_features, num_heads = 16, 10, 256, 8 # weiz 2025-01-12 notice that if q_features=64, I can even use atol, rtol 1e-5 to pass all the tests
