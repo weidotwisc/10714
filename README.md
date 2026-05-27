@@ -1,7 +1,7 @@
 # 10714
 CMU https://dlsyscourse.org/
 
-My notes (~200 page) about math and system components required to finish this set of homework assignemnt (./dlsys_10714.pdf)
+My notes (~200 page) about math and system components required to finish this set of homework assignemnt [dlsys_10714.pdf](./dlsys_10714.pdf)
 
 # HW0
 [hw0_README.md](./hw0_README.md)
